@@ -74,6 +74,51 @@ router.post('/', async (req, res) => {
     }
 });
 
+// Get Active Orders (Bill/History)
+router.get('/active', async (req, res) => {
+    const { restaurantId, customerName, tableId, tableNumber } = req.query;
+
+    if (!restaurantId || !customerName) {
+        return res.status(400).json({ error: 'Missing required parameters' });
+    }
+
+    try {
+        let query = supabase
+            .from('orders')
+            .select(`
+                *,
+                order_items (
+                    *,
+                    menu_items (name, price_full, price_half)
+                )
+            `)
+            .eq('restaurant_id', restaurantId)
+            // .neq('status', 'completed') // Removed for now so they can see history even if completed in same session
+            .order('created_at', { ascending: false });
+
+        // Logic: specific table UUID match OR fuzzy name match
+        if (tableId && tableId !== 'manual' && tableId !== 'null' && tableId !== 'undefined') {
+            query = query.eq('table_id', tableId);
+        } else {
+            // Manual Table or No Table Logic
+            // We search for exact "John" OR "John (Table 5)"
+            const namesToCheck = [customerName];
+            if (tableNumber) {
+                namesToCheck.push(`${customerName} (Table ${tableNumber})`);
+            }
+            query = query.in('customer_name', namesToCheck);
+        }
+
+        const { data, error } = await query;
+
+        if (error) throw error;
+        res.json(data);
+    } catch (error) {
+        console.error('Active Orders Error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // Get Order
 // Get Order (with items and payment)
 router.get('/:id', async (req, res) => {
@@ -132,50 +177,6 @@ router.put('/:id/status', async (req, res) => {
             .eq('id', req.params.id)
             .select()
             .single();
-
-        if (error) throw error;
-        res.json(data);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
-// Get Active Orders (Bill/History)
-router.get('/active', async (req, res) => {
-    const { restaurantId, customerName, tableId, tableNumber } = req.query;
-
-    if (!restaurantId || !customerName) {
-        return res.status(400).json({ error: 'Missing required parameters' });
-    }
-
-    try {
-        let query = supabase
-            .from('orders')
-            .select(`
-                *,
-                order_items (
-                    *,
-                    menu_items (name, price_full, price_half)
-                )
-            `)
-            .eq('restaurant_id', restaurantId)
-            // .neq('status', 'completed') // Removed for now so they can see history even if completed in same session
-            .order('created_at', { ascending: false });
-
-        // Logic: specific table UUID match OR fuzzy name match
-        if (tableId && tableId !== 'manual' && tableId !== 'null' && tableId !== 'undefined') {
-            query = query.eq('table_id', tableId);
-        } else {
-            // Manual Table or No Table Logic
-            // We search for exact "John" OR "John (Table 5)"
-            const namesToCheck = [customerName];
-            if (tableNumber) {
-                namesToCheck.push(`${customerName} (Table ${tableNumber})`);
-            }
-            query = query.in('customer_name', namesToCheck);
-        }
-
-        const { data, error } = await query;
 
         if (error) throw error;
         res.json(data);
