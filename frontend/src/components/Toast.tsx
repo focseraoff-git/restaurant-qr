@@ -26,12 +26,6 @@ export const Toast = ({ message, type = 'info', duration = 3000, onClose }: Toas
         info: 'bg-blue-500/10 border-blue-500/20 text-blue-800'
     };
 
-    const icons = {
-        success: 'check_circle',
-        error: 'error',
-        info: 'info'
-    };
-
     return (
         <div className={`fixed top-4 right-4 z-50 flex items-center gap-3 px-6 py-4 rounded-xl border backdrop-blur-md shadow-2xl transition-all duration-300 transform ${isVisible ? 'translate-y-0 opacity-100' : '-translate-y-4 opacity-0'} ${bgColors[type]}`}>
             <div className={`p-1 rounded-full ${type === 'success' ? 'bg-green-500' : type === 'error' ? 'bg-red-500' : 'bg-blue-500'} text-white`}>
