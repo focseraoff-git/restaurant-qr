@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useStore } from '../store/useStore';
 import api from '../utils/api';
-import { Html5QrcodeScanner } from 'html5-qrcode';
+import { Html5Qrcode } from 'html5-qrcode';
 
 export const LandingPage = () => {
     const navigate = useNavigate();
@@ -33,30 +33,45 @@ export const LandingPage = () => {
     // QR Scanner Effect
     useEffect(() => {
         if (!restaurantId && !searchParams.get('restaurantId')) {
-            const scanner = new Html5QrcodeScanner(
-                "reader",
-                { fps: 10, qrbox: { width: 250, height: 250 } },
-                /* verbose= */ false
-            );
+            const html5QrCode = new Html5Qrcode("reader");
 
-            scanner.render((decodedText) => {
-                console.log(`Scan result: ${decodedText}`);
+            const startScanner = async () => {
                 try {
-                    const url = new URL(decodedText);
-                    const rId = url.searchParams.get('restaurantId');
-                    if (rId) {
-                        scanner.clear();
-                        window.location.href = decodedText; // Hard redirect to ensure clean state
-                    }
-                } catch (e) {
-                    console.log('Not a URL');
+                    await html5QrCode.start(
+                        { facingMode: "environment" },
+                        {
+                            fps: 10,
+                            qrbox: { width: 250, height: 250 }
+                        },
+                        (decodedText: string) => {
+                            try {
+                                const url = new URL(decodedText);
+                                const rId = url.searchParams.get('restaurantId');
+                                if (rId) {
+                                    html5QrCode.stop().then(() => {
+                                        window.location.href = decodedText;
+                                    });
+                                }
+                            } catch (e) {
+                                console.log('Not a URL');
+                            }
+                        },
+                        (_error: any) => {
+                            // ignore frame errors
+                        }
+                    );
+                } catch (err) {
+                    console.error("Error starting scanner", err);
                 }
-            }, (_error) => {
-                // console.warn(_error);
-            });
+            };
+
+            startScanner();
 
             return () => {
-                scanner.clear().catch(err => console.error("Failed to clear scanner", err));
+                if (html5QrCode.isScanning) {
+                    html5QrCode.stop().catch(console.error);
+                }
+                html5QrCode.clear();
             };
         }
     }, [restaurantId, searchParams]);
@@ -77,11 +92,10 @@ export const LandingPage = () => {
 
     if (!restaurantId && !searchParams.get('restaurantId')) {
         return (
-            <div className="min-h-screen bg-gray-900 flex flex-col items-center justify-center p-4 text-white">
-                <h1 className="text-3xl font-bold mb-8">Scan QR Code</h1>
-                <div id="reader" className="w-full max-w-sm bg-white rounded-xl overflow-hidden shadow-2xl"></div>
-                <p className="mt-8 text-gray-400 text-center max-w-xs">
-                    Please point your camera at a restaurant QR code to start ordering.
+            <div className="fixed inset-0 bg-black text-white flex flex-col items-center justify-center p-4">
+                <div id="reader" className="w-full h-full max-w-md overflow-hidden rounded-xl"></div>
+                <p className="absolute bottom-8 bg-black/50 px-4 py-2 rounded-full text-sm font-medium backdrop-blur-md">
+                    Scan Restaurant QR Code header
                 </p>
             </div>
         );
