@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useStore } from '../store/useStore';
 import api from '../utils/api';
+import { Html5QrcodeScanner } from 'html5-qrcode';
 
 export const LandingPage = () => {
     const navigate = useNavigate();
@@ -29,6 +30,38 @@ export const LandingPage = () => {
         }
     }, [searchParams, setRestaurantId, setTableId]);
 
+    // QR Scanner Effect
+    useEffect(() => {
+        if (!restaurantId && !searchParams.get('restaurantId')) {
+            const scanner = new Html5QrcodeScanner(
+                "reader",
+                { fps: 10, qrbox: { width: 250, height: 250 } },
+                /* verbose= */ false
+            );
+
+            scanner.render((decodedText) => {
+                console.log(`Scan result: ${decodedText}`);
+                try {
+                    const url = new URL(decodedText);
+                    const rId = url.searchParams.get('restaurantId');
+                    if (rId) {
+                        scanner.clear();
+                        window.location.href = decodedText; // Hard redirect to ensure clean state
+                    }
+                } catch (e) {
+                    console.log('Not a URL');
+                }
+            }, (_error) => {
+                // console.warn(_error);
+            });
+
+            return () => {
+                scanner.clear().catch(err => console.error("Failed to clear scanner", err));
+            };
+        }
+    }, [restaurantId, searchParams]);
+
+
     const handleNameSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (name.trim()) {
@@ -43,7 +76,15 @@ export const LandingPage = () => {
     };
 
     if (!restaurantId && !searchParams.get('restaurantId')) {
-        return <div className="p-8 text-center">Invalid QR Code. Please scan again.</div>;
+        return (
+            <div className="min-h-screen bg-gray-900 flex flex-col items-center justify-center p-4 text-white">
+                <h1 className="text-3xl font-bold mb-8">Scan QR Code</h1>
+                <div id="reader" className="w-full max-w-sm bg-white rounded-xl overflow-hidden shadow-2xl"></div>
+                <p className="mt-8 text-gray-400 text-center max-w-xs">
+                    Please point your camera at a restaurant QR code to start ordering.
+                </p>
+            </div>
+        );
     }
 
     return (
