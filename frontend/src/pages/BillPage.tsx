@@ -80,7 +80,7 @@ export const BillPage = () => {
     // Helper Component for Order List
     const OrderList = ({ listOrders }: { listOrders: Order[] }) => (
         <div className="space-y-6">
-            {listOrders.map((order, idx) => (
+            {listOrders.map((order) => (
                 <div key={order.id} className="pb-6 border-b border-dashed border-white/10 last:border-0 last:pb-0">
                     <div className="flex justify-between items-center mb-3">
                         <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest font-mono">
