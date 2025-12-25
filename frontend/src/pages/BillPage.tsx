@@ -29,29 +29,8 @@ export const BillPage = () => {
 
     useEffect(() => {
         if (restaurantId && customerName) {
-
-            // Construct Name Logic (Must match CartPage.tsx)
-            let queryName = customerName;
-            if (tableNumber) {
-                // Note: CartPage appends (Table X) only if tableId is 'manual'. 
-                // But wait, if tableId came from QR, we might just be using 'customerName'.
-                // Let's check: CartPage ONLY appends if tableId === 'manual'.
-                // So checking tableId === 'manual' is safer? 
-                // Actually, useStore has 'tableId'.
-                // But wait, if page refreshed, tableId might be persisted.
-
-                // Let's check useStore again. tableId is persisted.
-                // Re-reading CartPage: if (tableId === 'manual').
-
-                // In BillPage, we can access tableId from store.
-                const { tableId: storeTableId } = useStore.getState();
-                if (storeTableId === 'manual') {
-                    queryName += ` (Table ${tableNumber})`;
-                }
-            }
-
             api.get(`/orders/active`, {
-                params: { restaurantId, customerName: queryName }
+                params: { restaurantId, customerName, tableNumber }
             })
                 .then(res => setOrders(res.data))
                 .catch(console.error)

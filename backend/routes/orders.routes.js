@@ -142,7 +142,7 @@ router.put('/:id/status', async (req, res) => {
 
 // Get Active Orders (Bill/History)
 router.get('/active', async (req, res) => {
-    const { restaurantId, customerName, tableId } = req.query;
+    const { restaurantId, customerName, tableId, tableNumber } = req.query;
 
     if (!restaurantId || !customerName) {
         return res.status(400).json({ error: 'Missing required parameters' });
@@ -159,13 +159,20 @@ router.get('/active', async (req, res) => {
                 )
             `)
             .eq('restaurant_id', restaurantId)
-            .eq('customer_name', customerName)
-            .neq('status', 'completed') // Only show active/pending/served, not closed history (optional)
+            // .neq('status', 'completed') // Removed for now so they can see history even if completed in same session
             .order('created_at', { ascending: false });
 
-        if (tableId && tableId !== 'null' && tableId !== 'undefined') {
-            // Optional: strict table matching if provided
-            // query = query.eq('table_id', tableId);
+        // Logic: specific table UUID match OR fuzzy name match
+        if (tableId && tableId !== 'manual' && tableId !== 'null' && tableId !== 'undefined') {
+            query = query.eq('table_id', tableId);
+        } else {
+            // Manual Table or No Table Logic
+            // We search for exact "John" OR "John (Table 5)"
+            let nameFilters = `customer_name.eq.${customerName}`;
+            if (tableNumber) {
+                nameFilters += `,customer_name.eq.${customerName} (Table ${tableNumber})`;
+            }
+            query = query.or(nameFilters);
         }
 
         const { data, error } = await query;
