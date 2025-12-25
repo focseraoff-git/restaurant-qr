@@ -21,12 +21,14 @@ const menuRoutes = require('./routes/menu.routes');
 const waiterRoutes = require('./routes/waiter.routes');
 const paymentsRoutes = require('./routes/payments.routes');
 const tablesRoutes = require('./routes/tables.routes');
+const restaurantsRoutes = require('./routes/restaurants.routes');
 
 app.use('/api/orders', ordersRoutes);
 app.use('/api/menu', menuRoutes);
 app.use('/api/waiter', waiterRoutes);
 app.use('/api/payments', paymentsRoutes);
 app.use('/api/tables', tablesRoutes);
+app.use('/api/restaurants', restaurantsRoutes);
 
 app.get('/', (req, res) => {
   res.send('Restaurant QR System API is running');
