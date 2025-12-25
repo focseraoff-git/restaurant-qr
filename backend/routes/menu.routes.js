@@ -26,4 +26,51 @@ router.get('/:restaurantId', async (req, res) => {
     }
 });
 
+// Add Menu Item
+router.post('/', async (req, res) => {
+    const { category_id, name, description, price_full, is_veg, image } = req.body;
+    try {
+        const { data, error } = await supabase
+            .from('menu_items')
+            .insert([{ category_id, name, description, price_full, is_veg, image }])
+            .select();
+        if (error) throw error;
+        res.status(201).json(data[0]);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Update Menu Item
+router.put('/:id', async (req, res) => {
+    const { id } = req.params;
+    const updates = req.body;
+    try {
+        const { data, error } = await supabase
+            .from('menu_items')
+            .update(updates)
+            .eq('id', id)
+            .select();
+        if (error) throw error;
+        res.json(data[0]);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Delete Menu Item
+router.delete('/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        const { error } = await supabase
+            .from('menu_items')
+            .delete()
+            .eq('id', id);
+        if (error) throw error;
+        res.json({ message: 'Item deleted successfully' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 module.exports = router;

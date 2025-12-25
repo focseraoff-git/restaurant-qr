@@ -76,57 +76,101 @@ export const WaiterDashboard = () => {
         }
     };
 
+    const activeOrders = orders.filter(o => o.status !== 'completed');
+
     return (
-        <div className="min-h-screen bg-gray-100 p-6">
+        <div className="min-h-screen bg-slate-950 p-4 md:p-6 font-sans relative overflow-hidden">
+            {/* Background Effects */}
+            <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-emerald-900/10 rounded-full blur-[120px] pointer-events-none"></div>
+
             <audio ref={audioRef} src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" />
 
-            <h1 className="text-3xl font-bold mb-6 text-gray-800">Waiter Dashboard 🔔</h1>
+            <div className="max-w-3xl mx-auto relative z-10">
+                <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 md:mb-8 gap-4">
+                    <div>
+                        <h1 className="text-2xl md:text-3xl font-display font-bold text-white flex items-center gap-3">
+                            Waiter Dashboard <span className="text-xl md:text-2xl w-8 h-8 md:w-10 md:h-10 bg-white/10 rounded-full flex items-center justify-center border border-white/10 shadow-glow-gold">🔔</span>
+                        </h1>
+                        <p className="text-gray-400 text-xs md:text-sm mt-1">Real-time order tracking for service staff.</p>
+                    </div>
+                    <div className="px-3 py-1.5 md:px-4 md:py-2 bg-white/5 rounded-xl border border-white/5 text-[10px] md:text-xs font-bold text-emerald-400 flex items-center gap-2 animate-pulse self-start md:self-auto">
+                        <span className="w-1.5 h-1.5 md:w-2 md:h-2 bg-emerald-500 rounded-full shadow-[0_0_10px_#10b981]"></span>
+                        LIVE
+                    </div>
+                </header>
 
-            <div className="grid gap-4 max-w-2xl mx-auto">
-                {orders.filter(o => o.status !== 'completed').map(order => (
-                    <div key={order.id} className={`p-6 rounded-xl shadow-md border-l-8 bg-white flex justify-between items-center
-                        ${order.status === 'pending' ? 'border-red-500' :
-                            order.status === 'ready' ? 'border-green-500' : 'border-yellow-500'}
-                    `}>
-                        <div>
-                            <div className="flex items-center gap-3 mb-1">
-                                <span className={`px-2 py-1 rounded text-xs font-bold uppercase text-white
-                                    ${order.status === 'pending' ? 'bg-red-500' :
-                                        order.status === 'ready' ? 'bg-green-500' : 'bg-yellow-500'}
-                                `}>
-                                    {order.status}
-                                </span>
-                                <span className="text-gray-400 text-xs">#{order.id.slice(0, 4)}</span>
+                <div className="space-y-4">
+                    {activeOrders.map(order => (
+                        <div key={order.id} className={`glass-panel p-5 md:p-6 rounded-2xl border-l-[6px] relative overflow-hidden transition-all active:scale-[0.98] group animate-slide-up
+                            ${order.status === 'pending' ? 'border-l-red-500 shadow-[0_0_20px_rgba(239,68,68,0.15)] bg-red-500/5' :
+                                order.status === 'ready' ? 'border-l-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.15)] bg-emerald-500/5' : 'border-l-blue-500 bg-blue-500/5'}
+                        `}>
+                            {/* Card Background Glow */}
+                            <div className={`absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-500 pointer-events-none bg-gradient-to-r ${order.status === 'ready' ? 'from-emerald-500/10' : 'from-white/5'} to-transparent`}></div>
+
+                            <div className="flex flex-col md:flex-row justify-between items-start md:items-center relative z-10 gap-4">
+                                <div className="w-full md:w-auto">
+                                    <div className="flex items-center gap-2 md:gap-3 mb-2">
+                                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest border
+                                            ${order.status === 'pending' ? 'bg-red-500/20 text-red-400 border-red-500/30' :
+                                                order.status === 'ready' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30 animate-pulse' : 'bg-blue-500/20 text-blue-400 border-blue-500/30'}
+                                        `}>
+                                            {order.status}
+                                        </span>
+                                        <span className="text-gray-500 font-mono text-xs">#{order.id.slice(0, 4)}</span>
+                                        <span className="text-gray-500 text-xs">•</span>
+                                        <span className="text-gray-400 text-xs font-medium">
+                                            {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        </span>
+                                    </div>
+                                    <h2 className="text-xl md:text-2xl font-display font-bold text-white mb-1">
+                                        {order.tables?.table_number ? (
+                                            <span className="flex items-center gap-2">🍽️ Table {order.tables.table_number}</span>
+                                        ) : (
+                                            <span className="flex items-center gap-2 text-amber-400">🥡 Takeaway</span>
+                                        )}
+                                    </h2>
+                                    <p className="text-gray-400 font-medium text-sm flex items-center gap-2">
+                                        👤 {order.customer_name || 'Guest'}
+                                        <span className="w-1 h-1 bg-gray-600 rounded-full"></span>
+                                        {order.order_items.length} Items
+                                    </p>
+                                </div>
+
+                                {order.status === 'ready' && (
+                                    <button
+                                        onClick={() => markServed(order.id)}
+                                        className="w-full md:w-auto btn-primary text-white px-6 py-3 md:px-8 md:py-4 rounded-xl font-bold shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/50 transition-all transform flex flex-row md:flex-col items-center justify-center gap-2 md:gap-1 group/btn"
+                                    >
+                                        <span className="text-lg">SERVE</span>
+                                        <span className="text-[10px] font-normal opacity-80 md:group-hover/btn:opacity-100 hidden md:block">Click to complete</span>
+                                        <span className="md:hidden">→</span>
+                                    </button>
+                                )}
+
+                                {order.status === 'pending' && (
+                                    <div className="w-full md:w-auto text-center md:text-right text-red-400 font-bold text-xs bg-red-500/10 px-4 py-2 rounded-lg border border-red-500/20 animate-pulse">
+                                        ⚠️ KITCHEN<br className="hidden md:inline" /> PENDING
+                                    </div>
+                                )}
+
+                                {order.status === 'preparing' && (
+                                    <div className="w-full md:w-auto text-center md:text-right text-blue-400 font-bold text-xs bg-blue-500/10 px-4 py-2 rounded-lg border border-blue-500/20">
+                                        👨‍🍳 CHEFS<br className="hidden md:inline" /> COOKING
+                                    </div>
+                                )}
                             </div>
-                            <h2 className="text-xl font-bold text-gray-900">
-                                {order.tables?.table_number ? `Table ${order.tables.table_number}` : 'Takeaway'}
-                            </h2>
-                            <p className="text-gray-600 font-medium">Customer: {order.customer_name || 'Guest'}</p>
-                            <p className="text-sm text-gray-500 mt-1">Items: {order.order_items.length}</p>
                         </div>
+                    ))}
 
-                        {order.status === 'ready' && (
-                            <button
-                                onClick={() => markServed(order.id)}
-                                className="bg-green-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-green-700 shadow-lg animate-pulse"
-                            >
-                                SERVE 🍽️
-                            </button>
-                        )}
-
-                        {order.status === 'pending' && (
-                            <div className="text-red-500 font-bold text-sm text-right">
-                                New Order<br />Pending Kitchen
-                            </div>
-                        )}
-                    </div>
-                ))}
-
-                {orders.filter(o => o.status !== 'completed').length === 0 && (
-                    <div className="text-center py-20 text-gray-400">
-                        <p className="text-xl">All caught up! No active orders.</p>
-                    </div>
-                )}
+                    {activeOrders.length === 0 && (
+                        <div className="text-center py-20 border-2 border-dashed border-white/5 rounded-3xl bg-white/5">
+                            <div className="text-4xl mb-4 grayscale opacity-50">☕</div>
+                            <p className="text-xl font-display font-bold text-gray-500">All caught up!</p>
+                            <p className="text-sm text-gray-600">No active orders needing attention.</p>
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );

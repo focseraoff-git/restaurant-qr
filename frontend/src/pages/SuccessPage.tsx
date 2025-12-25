@@ -36,36 +36,36 @@ export const SuccessPage = () => {
         }
     }, [orderId]);
 
-    if (!orderId) return <div className="p-8 text-center">No Order Found</div>;
+    if (!orderId) return <div className="p-8 text-center text-white">No Order Found</div>;
 
     const currentStepIndex = STATUS_STEPS.indexOf(order?.status || 'pending');
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 flex flex-col items-center p-6 relative overflow-hidden">
-            {/* Background Blobs */}
-            <div className="absolute top-0 left-0 w-96 h-96 bg-green-200 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2 opacity-30"></div>
-            <div className="absolute bottom-0 right-0 w-96 h-96 bg-emerald-200 rounded-full blur-3xl translate-x-1/2 translate-y-1/2 opacity-30"></div>
+        <div className="min-h-screen bg-slate-950 flex flex-col items-center p-6 relative overflow-hidden">
+            {/* Background Effects */}
+            <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-emerald-500/10 rounded-full blur-[120px] pointer-events-none"></div>
+            <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-indigo-500/10 rounded-full blur-[120px] pointer-events-none"></div>
 
-            <div className="w-full max-w-md bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/50 p-8 mb-6 animate-fade-in-up relative z-10">
+            <div className="w-full max-w-md glass-panel rounded-[2.5rem] shadow-2xl border border-white/10 p-8 mb-6 animate-fade-in-up relative z-10 transition-all hover:shadow-emerald-500/10">
                 <div className="text-center mb-10">
-                    <div className="relative inline-block mb-4">
-                        <div className="absolute inset-0 bg-green-400 rounded-full blur-xl opacity-20 animate-pulse"></div>
-                        <div className="w-24 h-24 bg-gradient-to-br from-green-100 to-emerald-50 rounded-full flex items-center justify-center relative z-10 shadow-inner border border-white">
-                            <span className="text-5xl animate-bounce-short">🎉</span>
+                    <div className="relative inline-block mb-6">
+                        <div className="absolute inset-0 bg-emerald-500 rounded-full blur-2xl opacity-20 animate-pulse"></div>
+                        <div className="w-24 h-24 bg-gradient-to-br from-emerald-500/20 to-teal-500/20 rounded-full flex items-center justify-center relative z-10 shadow-inner border border-emerald-500/30 backdrop-blur-md">
+                            <span className="text-5xl animate-bounce-short drop-shadow-[0_0_15px_rgba(52,211,153,0.5)]">🎉</span>
                         </div>
                     </div>
-                    <h1 className="text-3xl font-display font-bold text-gray-900 mb-2">Order Confirmed!</h1>
-                    <p className="text-gray-500 font-medium">Sit back, relax, and get ready to eat.</p>
+                    <h1 className="text-3xl font-display font-bold text-white mb-2 tracking-tight">Order Confirmed!</h1>
+                    <p className="text-gray-400 font-medium">Sit back, relax, and get ready to eat.</p>
                 </div>
 
                 {/* Status Tracker */}
                 <div className="mb-10">
-                    <div className="flex justify-between mb-4 relative px-2">
+                    <div className="flex justify-between mb-8 relative px-2">
                         {/* Progress Bar Background */}
-                        <div className="absolute top-1/2 left-2 right-2 h-1 bg-gray-100 -z-10 rounded-full"></div>
+                        <div className="absolute top-1/2 left-2 right-2 h-1 bg-white/10 -z-10 rounded-full"></div>
                         {/* Active Progress */}
                         <div
-                            className="absolute top-1/2 left-2 h-1 bg-gradient-to-r from-green-400 to-emerald-600 -z-10 rounded-full transition-all duration-1000 ease-out"
+                            className="absolute top-1/2 left-2 h-1 bg-gradient-to-r from-emerald-500 to-teal-400 -z-10 rounded-full transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(16,185,129,0.5)]"
                             style={{ width: `calc(${(currentStepIndex / (STATUS_STEPS.length - 1)) * 100}% - 16px)` }}
                         ></div>
 
@@ -73,10 +73,10 @@ export const SuccessPage = () => {
                             const isActive = idx <= currentStepIndex;
                             const isCurrent = idx === currentStepIndex;
                             return (
-                                <div key={step} className={`flex flex-col items-center transition-all duration-500 relative ${isActive ? 'opacity-100' : 'opacity-40'}`}>
-                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold border-2 mb-2 z-10 transition-all duration-500 shadow-sm
-                                        ${isActive ? 'border-green-500 bg-green-500 text-white' : 'border-gray-200 bg-white text-gray-300'}
-                                        ${isCurrent ? 'ring-4 ring-green-100 scale-110 shadow-lg shadow-green-200' : ''}
+                                <div key={step} className={`flex flex-col items-center transition-all duration-500 relative ${isActive ? 'opacity-100' : 'opacity-30'}`}>
+                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border-2 mb-2 z-10 transition-all duration-500
+                                        ${isActive ? 'border-emerald-500 bg-emerald-500 text-white shadow-[0_0_15px_rgba(16,185,129,0.5)]' : 'border-white/10 bg-slate-900 text-gray-500'}
+                                        ${isCurrent ? 'ring-4 ring-emerald-500/20 scale-125' : ''}
                                     `}>
                                         {isActive ? '✓' : idx + 1}
                                     </div>
@@ -85,12 +85,12 @@ export const SuccessPage = () => {
                         })}
                     </div>
 
-                    <div className="text-center bg-white/60 rounded-2xl p-6 border border-white/50 shadow-sm backdrop-blur-sm">
-                        <p className="text-xs text-emerald-600 font-bold uppercase tracking-widest mb-2">Current Status</p>
-                        <p className="text-2xl font-display font-bold text-gray-900 mb-1 animate-fade-in">
+                    <div className="text-center bg-white/5 rounded-2xl p-6 border border-white/5 shadow-inner backdrop-blur-sm">
+                        <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-[0.2em] mb-2 text-shadow-glow">Current Status</p>
+                        <p className="text-2xl font-display font-bold text-white mb-1 animate-fade-in tracking-tight">
                             {STATUS_LABELS[order?.status] || 'Processing...'}
                         </p>
-                        <p className="text-sm text-gray-500">
+                        <p className="text-sm text-gray-400">
                             {STATUS_DESCRIPTIONS[order?.status] || 'Please wait while we update your status.'}
                         </p>
                     </div>
@@ -98,37 +98,37 @@ export const SuccessPage = () => {
 
                 {/* Estimated Time */}
                 {order?.status !== 'completed' && (
-                    <div className="flex items-center justify-between p-5 bg-gradient-to-r from-gray-50 to-white rounded-2xl border border-gray-100 mb-8 shadow-sm">
+                    <div className="flex items-center justify-between p-5 bg-gradient-to-r from-slate-900 to-slate-800 rounded-2xl border border-white/5 mb-8 shadow-lg">
                         <div className="flex items-center gap-4">
-                            <div className="p-3 bg-white rounded-xl shadow-sm text-2xl border border-gray-100">⏱️</div>
+                            <div className="p-3 bg-white/5 rounded-xl shadow-inner text-2xl border border-white/5">⏱️</div>
                             <div>
-                                <p className="text-xs text-gray-400 font-bold uppercase tracking-wide">Estimated Wait</p>
-                                <p className="text-lg font-bold text-gray-900">15-20 Mins</p>
+                                <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wide">Estimated Wait</p>
+                                <p className="text-lg font-bold text-white">15-20 Mins</p>
                             </div>
                         </div>
                     </div>
                 )}
 
-                <div className="space-y-3">
-                    <button className="w-full bg-[#25D366] text-white py-4 rounded-xl font-bold hover:shadow-lg hover:shadow-green-200 transition-all flex items-center justify-center gap-3 active:scale-[0.98]">
-                        <span className="text-xl">💬</span>
+                <div className="space-y-4">
+                    <button className="w-full bg-[#25D366] hover:bg-[#20bd5a] text-white py-4 rounded-xl font-bold shadow-lg hover:shadow-green-500/20 transition-all flex items-center justify-center gap-3 active:scale-[0.98] group">
+                        <span className="text-xl group-hover:scale-110 transition-transform">💬</span>
                         <span>Join WhatsApp Community</span>
                     </button>
-                    <button className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white py-4 rounded-xl font-bold hover:shadow-lg hover:shadow-pink-200 transition-all flex items-center justify-center gap-3 active:scale-[0.98]">
-                        <span className="text-xl">📸</span>
+                    <button className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white py-4 rounded-xl font-bold shadow-lg hover:shadow-pink-500/20 transition-all flex items-center justify-center gap-3 active:scale-[0.98] group">
+                        <span className="text-xl group-hover:scale-110 transition-transform">📸</span>
                         <span>Follow on Instagram</span>
                     </button>
 
-                    <div className="grid grid-cols-2 gap-3 pt-2">
+                    <div className="grid grid-cols-2 gap-3 pt-4">
                         <button
                             onClick={() => navigate('/menu')}
-                            className="w-full py-3 font-bold text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors border border-gray-100"
+                            className="w-full py-3 font-bold text-gray-300 bg-white/5 hover:bg-white/10 rounded-xl transition-colors border border-white/5 hover:text-white"
                         >
                             Order More
                         </button>
                         <button
                             onClick={() => navigate('/bill')}
-                            className="w-full py-3 font-bold text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-xl transition-colors border border-emerald-100"
+                            className="w-full py-3 font-bold text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 rounded-xl transition-colors border border-emerald-500/20 shadow-glow-emerald"
                         >
                             View Bill
                         </button>
@@ -136,7 +136,7 @@ export const SuccessPage = () => {
                 </div>
             </div>
 
-            <p className="text-emerald-800/40 text-xs font-medium mt-4">Thank you for dining with us!</p>
+            <p className="text-white/20 text-xs font-medium mt-4 tracking-widest uppercase">Thank you for dining with us</p>
         </div>
     );
 };

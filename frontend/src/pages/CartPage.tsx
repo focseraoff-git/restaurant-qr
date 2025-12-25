@@ -55,91 +55,112 @@ export const CartPage = () => {
 
     if (cart.length === 0) {
         return (
-            <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-6 text-center">
-                <div className="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center mb-6 text-4xl animate-pulse">🛒</div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-2">Cart is Empty</h2>
-                <p className="text-gray-500 mb-8">Looks like you haven't added anything yet.</p>
-                <button onClick={() => navigate('/menu')} className="bg-gray-900 text-white px-8 py-3 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all">Go to Menu</button>
+            <div className="min-h-screen flex flex-col items-center justify-center bg-slate-950 p-8 text-center relative overflow-hidden">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-slate-950 z-0"></div>
+
+                <div className="relative z-10 flex flex-col items-center animate-fade-in-up">
+                    <div className="w-32 h-32 bg-white/5 rounded-full flex items-center justify-center mb-8 border border-white/10 shadow-glow-emerald">
+                        <span className="text-6xl filter drop-shadow">🛒</span>
+                    </div>
+                    <h2 className="text-3xl font-display font-bold text-white mb-3">Cart is Empty</h2>
+                    <p className="text-gray-400 mb-10 text-lg font-light leading-relaxed max-w-xs">Your culinary journey awaits. Explore our menu to find something delicious.</p>
+                    <button onClick={() => navigate('/menu')} className="btn-primary text-white px-10 py-4 rounded-2xl font-bold shadow-2xl hover:shadow-emerald-500/20 transition-all transform hover:-translate-y-1">
+                        Explore Menu
+                    </button>
+                </div>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 pb-32">
+        <div className="min-h-screen bg-slate-950 pb-40 relative">
+            {/* Background Effects */}
+            <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/5 rounded-full blur-[100px] pointer-events-none"></div>
 
             {/* Minimalist Header */}
-            <div className="bg-white/80 backdrop-blur-md sticky top-0 z-30 px-6 py-4 flex items-center gap-4 border-b border-gray-100">
-                <button onClick={() => navigate('/menu')} className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-600 hover:bg-gray-100 transition-colors">
-                    &larr;
+            <div className="glass-nav sticky top-0 z-30 px-6 py-4 flex items-center gap-4 border-b border-white/5 shadow-lg">
+                <button onClick={() => navigate('/menu')} className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors backdrop-blur-md">
+                    <span className="text-xl">←</span>
                 </button>
-                <h1 className="text-xl font-display font-bold text-gray-900">Your Order</h1>
+                <h1 className="text-xl font-display font-bold text-white">Your Selection</h1>
             </div>
 
-            <div className="p-6 space-y-6">
-                {cart.map(item => (
-                    <div key={`${item.id}-${item.portion}-${item.taste}`} className="bg-white p-5 rounded-3xl shadow-sm border border-gray-100 relative overflow-hidden group">
+            <div className="p-6 space-y-5 relative z-10">
+                {cart.map((item, idx) => (
+                    <div
+                        key={`${item.id}-${item.portion}-${item.taste}`}
+                        className="glass-panel p-5 rounded-3xl border border-white/10 relative overflow-hidden group animate-slide-up"
+                        style={{ animationDelay: `${idx * 50}ms` }}
+                    >
                         {/* Interactive Hover Glow */}
-                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-gray-50 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+                        <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
 
-                        <div className="relative z-10 flex justify-between items-start">
+                        <div className="relative z-10 flex justify-between items-start mb-4">
                             <div>
-                                <h4 className="font-bold text-lg text-gray-900 leading-tight mb-1">{item.name}</h4>
+                                <h4 className="font-display font-bold text-xl text-white leading-tight mb-2 group-hover:text-emerald-300 transition-colors">{item.name}</h4>
                                 <div className="flex items-center gap-2">
-                                    <span className="font-display font-bold text-gray-500">₹{item.price}</span>
+                                    <span className="font-bold text-emerald-400 text-lg">₹{item.price * item.quantity}</span>
                                     {item.portion !== 'full' && (
-                                        <span className="text-[10px] uppercase font-bold bg-orange-100 text-orange-600 px-2 py-0.5 rounded-md tracking-wide">{item.portion}</span>
+                                        <span className="text-[10px] uppercase font-bold bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-md tracking-widest border border-amber-500/20">{item.portion}</span>
                                     )}
                                 </div>
                             </div>
 
                             {/* Quantity Controls */}
-                            <div className="flex items-center bg-gray-900 rounded-xl p-1 shadow-md">
+                            <div className="flex items-center bg-slate-900 rounded-xl p-1 shadow-inner border border-white/5">
                                 <button
                                     onClick={() => updateQuantity(item.id, item.portion, -1)}
-                                    className="w-8 h-8 flex items-center justify-center text-white hover:bg-white/20 rounded-lg transition-colors font-bold"
+                                    className="w-10 h-10 flex items-center justify-center text-white hover:bg-white/10 rounded-lg transition-colors font-bold text-lg"
                                 >
                                     -
                                 </button>
-                                <span className="w-6 text-center text-white font-bold text-sm">{item.quantity}</span>
+                                <span className="w-8 text-center text-white font-display font-bold text-lg">{item.quantity}</span>
                                 <button
                                     onClick={() => updateQuantity(item.id, item.portion, 1)}
-                                    className="w-8 h-8 flex items-center justify-center text-white hover:bg-white/20 rounded-lg transition-colors font-bold"
+                                    className="w-10 h-10 flex items-center justify-center text-white hover:bg-white/10 rounded-lg transition-colors font-bold text-lg"
                                 >
                                     +
                                 </button>
                             </div>
                         </div>
 
-                        {/* Total per Item */}
-                        <div className="mt-4 pt-4 border-t border-gray-50 flex justify-between items-center">
-                            <span className="text-xs text-gray-400 font-medium">Subtotal</span>
-                            <span className="font-bold text-gray-900">₹{item.price * item.quantity}</span>
+                        {/* Item Details Footer */}
+                        <div className="flex justify-between items-center text-xs text-gray-500 font-medium">
+                            <span>₹{item.price} each</span>
+                            {item.taste && <span className="italic text-gray-400">Note: {item.taste}</span>}
                         </div>
                     </div>
                 ))}
             </div>
 
             {/* Floating Checkout Bar */}
-            <div className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-xl border-t border-gray-100 p-6 z-50 rounded-t-3xl shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)]">
-                <div className="flex justify-between items-end mb-4 px-2">
+            <div className="fixed bottom-0 left-0 right-0 bg-slate-900/80 backdrop-blur-xl border-t border-white/10 p-6 z-50 rounded-t-[2.5rem] shadow-[0_-10px_60px_-15px_rgba(0,0,0,0.5)] pb-safe">
+                <div className="flex justify-between items-end mb-6 px-2">
                     <div>
-                        <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">Total to Pay</p>
-                        <p className="text-3xl font-display font-bold text-gray-900">₹{total}</p>
+                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-[0.2em] mb-1">Total Amount</p>
+                        <p className="text-4xl font-display font-bold text-white tracking-tight">₹{total}</p>
                     </div>
                 </div>
 
                 <button
                     onClick={placeOrder}
                     disabled={submitting}
-                    className={`w-full py-4 rounded-2xl font-bold text-lg shadow-xl flex items-center justify-center gap-3 transition-all transform active:scale-[0.98]
+                    className={`w-full py-5 rounded-2xl font-bold text-lg shadow-2xl flex items-center justify-center gap-3 transition-all transform active:scale-[0.98] group relative overflow-hidden
                         ${submitting
-                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                            : 'bg-primary-600 text-white hover:bg-primary-700 hover:shadow-primary-hover'}`}
+                            ? 'bg-slate-800 text-gray-500 cursor-not-allowed'
+                            : 'btn-primary text-white hover:shadow-emerald-500/25'}`}
                 >
+                    <div className="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
                     {submitting ? (
-                        <><span>Processing...</span></>
+                        <>
+                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                            <span>Processing...</span>
+                        </>
                     ) : (
-                        <><span>Confirm Order</span> <span>&rarr;</span></>
+                        <>
+                            <span>Confirm Order</span>
+                            <span className="group-hover:translate-x-1 transition-transform">→</span>
+                        </>
                     )}
                 </button>
             </div>

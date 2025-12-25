@@ -5,55 +5,40 @@ const TableInfo = () => {
     const { tableNumber } = useStore();
     if (!tableNumber) return null;
     return (
-        <span className="bg-primary-50 text-primary-700 px-3 py-1 rounded-full text-xs font-bold border border-primary-100">
+        <span className="bg-emerald-500/10 text-emerald-400 px-3 py-1 rounded-full text-xs font-bold border border-emerald-500/20 backdrop-blur-md shadow-sm">
             Table {tableNumber}
         </span>
     );
 };
 
 export const Layout = () => {
-    const { cart } = useStore();
-    const location = useLocation();
-
-    // Don't show cart button on cart page
-    const showCart = location.pathname !== '/cart' && cart.length > 0;
-    const itemCount = cart.reduce((acc, item) => acc + item.quantity, 0);
-
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col relative font-sans">
-            <header className="bg-white/80 backdrop-blur-md border-b border-gray-100 sticky top-0 z-20">
-                <div className="container mx-auto px-4 py-3 flex justify-between items-center max-w-2xl">
-                    <Link to="/" className="text-2xl font-display font-bold text-gray-900 tracking-tight">
-                        Feast<span className="text-primary-600">QR</span>
+        <div className="min-h-screen bg-slate-950 flex flex-col relative font-sans">
+            {/* Global Background Effects - Subtle to not interfere with page specific ones */}
+            <div className="absolute top-0 left-0 right-0 h-64 bg-gradient-to-b from-indigo-900/10 to-transparent pointer-events-none"></div>
+
+            <header className="glass-nav sticky top-0 z-50">
+                <div className="container mx-auto px-4 py-3 flex justify-between items-center max-w-4xl">
+                    <Link to="/" className="text-2xl font-display font-bold text-white tracking-tight hover:opacity-80 transition-opacity">
+                        Focsera<span className="text-emerald-400">DineQR</span>
                     </Link>
-                    {/* Placeholder for future nav */}
-                    <div className="flex items-center gap-3">
+
+                    <div className="flex items-center gap-4">
                         <TableInfo />
-                        <div className="w-8 h-8 rounded-full bg-gray-100 shadow-inner"></div>
+                        {/* Avatar Placeholder */}
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-slate-700 to-slate-800 border border-white/10 shadow-inner flex items-center justify-center">
+                            <span className="text-xs">👤</span>
+                        </div>
                     </div>
                 </div>
             </header>
 
-            <main className="flex-grow container mx-auto p-4 max-w-2xl z-10 relative">
+            <main className="flex-grow container mx-auto max-w-4xl z-10 relative">
                 <Outlet />
             </main>
 
-            {showCart && (
-                <div className="fixed bottom-6 left-4 right-4 max-w-2xl mx-auto z-30 pointer-events-none">
-                    <Link to="/cart" className="pointer-events-auto bg-gray-900 text-white p-4 rounded-2xl shadow-premium-hover flex justify-between items-center transform transition-transform hover:scale-[1.02] active:scale-[0.98]">
-                        <div className="flex items-center gap-3">
-                            <span className="bg-primary-500 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shadow-sm ring-2 ring-gray-900">
-                                {itemCount}
-                            </span>
-                            <span className="font-medium text-lg">View Cart</span>
-                        </div>
-                        <span className="font-bold text-gray-400 group-hover:text-white transition-colors">&rarr;</span>
-                    </Link>
-                </div>
-            )}
-
-            <footer className="py-8 text-center text-gray-400 text-xs mt-auto">
-                <p>&copy; 2024 FeastQR System</p>
+            <footer className="py-8 text-center text-gray-600 text-[10px] uppercase tracking-widest mt-auto border-t border-white/5 bg-slate-950">
+                <p>&copy; 2025 FocseraDineQR System</p>
             </footer>
         </div>
     );

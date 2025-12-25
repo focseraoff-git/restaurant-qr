@@ -1,7 +1,9 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import api from '../utils/api';
+import { Toast } from '../components/Toast';
 
+// Interfaces
 interface OrderItem {
     id: string;
     quantity: number;
@@ -24,16 +26,17 @@ interface Order {
     total_amount: number;
     created_at: string;
     order_items: OrderItem[];
-    tables?: Table; // Join result
+    tables?: Table;
     customer_name?: string;
 }
 
+// Constants
 const STATUS_COLORS: Record<string, string> = {
-    pending: 'bg-orange-100 border-orange-200 text-orange-800',
-    preparing: 'bg-blue-100 border-blue-200 text-blue-800',
-    ready: 'bg-green-100 border-green-200 text-green-800',
-    completed: 'bg-gray-100 border-gray-200 text-gray-600',
-    cancelled: 'bg-red-50 border-red-100 text-red-600'
+    pending: 'bg-orange-500/10 border-orange-500/50 text-orange-400',
+    preparing: 'bg-blue-500/10 border-blue-500/50 text-blue-400',
+    ready: 'bg-emerald-500/10 border-emerald-500/50 text-emerald-400',
+    completed: 'bg-slate-800/50 border-slate-700 text-gray-400',
+    cancelled: 'bg-red-500/10 border-red-500/50 text-red-400'
 };
 
 const NEXT_STATUS: Record<string, string> = {
@@ -42,12 +45,42 @@ const NEXT_STATUS: Record<string, string> = {
     ready: 'completed'
 };
 
+// Modal Component
+const Modal = ({ isOpen, onClose, title, children }: any) => {
+    if (!isOpen) return null;
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
+            <div className="glass-panel w-full max-w-md overflow-hidden animate-slide-up rounded-3xl border border-white/10">
+                <div className="px-6 py-5 border-b border-white/10 flex justify-between items-center bg-white/5">
+                    <h3 className="font-display font-bold text-xl text-white">{title}</h3>
+                    <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors text-2xl">×</button>
+                </div>
+                <div className="p-6">
+                    {children}
+                </div>
+            </div>
+        </div>
+    );
+};
+
 export const KitchenDashboard = () => {
     const { restaurantId } = useParams();
+
+    // Orders State
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
     const [lastCount, setLastCount] = useState(0);
     const audioRef = useRef<HTMLAudioElement | null>(null);
+
+    // Manager Mode State
+    const [isManagerMode, setIsManagerMode] = useState(true); // Default to Manager Mode for nicer first impression
+    const [menuCategories, setMenuCategories] = useState<any[]>([]);
+    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
+
+    // Modal & Form State
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [editingItem, setEditingItem] = useState<any | null>(null);
+    const [newItem, setNewItem] = useState({ name: '', price: '', description: '', is_veg: true, category_id: '' });
 
     // Request notification permission on mount
     useEffect(() => {
@@ -69,7 +102,22 @@ export const KitchenDashboard = () => {
         }
     };
 
-    // Effect for handling sound/notifications
+    const fetchMenu = async () => {
+        if (!restaurantId) return;
+        try {
+            const cleanId = restaurantId.split('&')[0];
+            const res = await api.get(`/menu/${cleanId}`);
+            setMenuCategories(res.data);
+            // Set default category for new items
+            if (res.data.length > 0 && !newItem.category_id) {
+                setNewItem(prev => ({ ...prev, category_id: res.data[0].id }));
+            }
+        } catch (error) {
+            console.error('Error fetching menu:', error);
+        }
+    };
+
+    // Effect for handling sound/notifications for Orders
     useEffect(() => {
         // Only play if we have more orders than before (and not the initial load)
         if (orders.length > lastCount && lastCount !== 0) {
@@ -83,11 +131,13 @@ export const KitchenDashboard = () => {
         }
         // Always update lastCount
         setLastCount(orders.length);
-    }, [orders.length]); // Intentionally checking length changes
+    }, [orders.length]);
 
+    // Polling for Orders
     useEffect(() => {
         fetchOrders();
-        const interval = setInterval(fetchOrders, 5000); // Polling increased to 5s for snappier updates
+        fetchMenu();
+        const interval = setInterval(fetchOrders, 5000);
         return () => clearInterval(interval);
     }, [restaurantId]);
 
@@ -104,45 +154,122 @@ export const KitchenDashboard = () => {
         }
     };
 
+    const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
+        setToast({ message, type });
+    };
+
+    const handleAddItem = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!newItem.name || !newItem.price || !newItem.category_id) {
+            showToast("Please fill in all required fields.", "error");
+            return;
+        }
+        try {
+            await api.post('/menu', {
+                ...newItem,
+                price_full: parseInt(newItem.price),
+            });
+            setIsAddModalOpen(false);
+            setNewItem({ name: '', price: '', description: '', is_veg: true, category_id: menuCategories[0]?.id || '' });
+            fetchMenu();
+            showToast("Recipe Added Successfully! 🍳", "success");
+        } catch (error: any) {
+            console.error(error);
+            const msg = error.response?.data?.error || error.message || "Failed to add item.";
+            showToast(msg, "error");
+        }
+    };
+
+    const handleUpdateItem = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingItem) return;
+        try {
+            await api.put(`/menu/${editingItem.id}`, {
+                name: editingItem.name,
+                price_full: parseInt(editingItem.price_full),
+                description: editingItem.description,
+                is_veg: editingItem.is_veg
+            });
+            setEditingItem(null);
+            fetchMenu();
+            showToast("Recipe Updated Successfully!", "success");
+        } catch (error: any) {
+            const msg = error.response?.data?.error || error.message || "Failed to update item.";
+            showToast(msg, "error");
+        }
+    };
+
+    const [deleteConfirmation, setDeleteConfirmation] = useState<{ isOpen: boolean; itemId: string | null }>({
+        isOpen: false,
+        itemId: null
+    });
+
+    const confirmDelete = (itemId: string) => {
+        setDeleteConfirmation({ isOpen: true, itemId });
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!deleteConfirmation.itemId) return;
+
+        const itemId = deleteConfirmation.itemId;
+        setDeleteConfirmation({ isOpen: false, itemId: null });
+
+        try {
+            await api.delete(`/menu/${itemId}`);
+            fetchMenu();
+            showToast("Recipe Removed Successfully", "success");
+        } catch (error: any) {
+            const msg = error.response?.data?.error || error.message || "Failed to delete item.";
+            showToast(msg, "error");
+        }
+    };
+
+    // Kept for compatibility if called elsewhere, but we switch the UI to call confirmDelete
+    const handleDeleteItem = confirmDelete;
+
     const getOrdersByStatus = (status: string) => orders.filter(o => o.status === status);
 
     const OrderCard = ({ order }: { order: Order }) => (
-        <div className={`p-4 rounded-xl shadow-sm border mb-4 bg-white transition-all hover:shadow-md ${STATUS_COLORS[order.status] || 'bg-white'}`}>
-            <div className="flex justify-between items-start mb-2">
+        <div className={`p-5 rounded-2xl shadow-lg border mb-4 backdrop-blur-sm transition-all hover:scale-[1.02] duration-300 ${STATUS_COLORS[order.status] || 'bg-slate-800 border-white/10'}`}>
+            <div className="flex justify-between items-start mb-3">
                 <div>
-                    <h3 className="font-bold text-xl flex items-center gap-2">
+                    <h3 className="font-bold text-xl flex items-center gap-2 text-white">
                         {order.tables?.table_number ? (
-                            <span className="bg-white/50 px-2 py-1 rounded-lg border border-gray-200">
+                            <span className="bg-white/10 px-2 py-1 rounded-lg border border-white/10 text-sm">
                                 🍽️ T-{order.tables.table_number}
                             </span>
                         ) : (
-                            <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-lg border border-yellow-200">
+                            <span className="bg-amber-500/20 text-amber-300 px-2 py-1 rounded-lg border border-amber-500/20 text-sm">
                                 🥡 Takeaway
                             </span>
                         )}
                     </h3>
                     {order.customer_name && (
-                        <div className="font-semibold text-gray-900 mt-1 text-lg">
-                            👤 {order.customer_name}
+                        <div className="font-display font-medium text-gray-200 mt-2 text-lg flex items-center gap-2">
+                            <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-500 flex items-center justify-center text-[10px] text-white font-bold">
+                                {order.customer_name.charAt(0)}
+                            </div>
+                            {order.customer_name}
                         </div>
                     )}
-                    <span className="text-xs opacity-50 font-mono mt-1 block">ID: {order.id.slice(0, 4)}</span>
+                    <span className="text-[10px] opacity-40 font-mono mt-1 block text-gray-400">ID: {order.id.slice(0, 4)}</span>
                 </div>
                 <div className="text-right">
-                    <span className="text-lg font-bold font-mono block">
+                    <span className="text-lg font-bold font-mono block text-white/90">
                         {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
-                    <span className="text-xs opacity-60">ordered time</span>
+                    <span className="text-[10px] opacity-60 text-gray-400 uppercase tracking-wider">ordered time</span>
                 </div>
             </div>
 
-            <div className="space-y-2 mb-4 bg-white/50 p-3 rounded-lg">
+            <div className="space-y-2 mb-4 bg-black/20 p-3 rounded-xl border border-white/5">
                 {order.order_items.map((item, idx) => (
-                    <div key={idx} className="flex justify-between items-center text-sm border-b border-gray-100 last:border-0 pb-2 last:pb-0">
-                        <span className="text-gray-900 font-bold">
-                            {item.quantity}x {item.menu_items?.name || 'Unknown Item'}
+                    <div key={idx} className="flex justify-between items-center text-sm border-b border-white/5 last:border-0 pb-2 last:pb-0">
+                        <span className="text-gray-200 font-medium">
+                            <span className="font-bold text-emerald-400 mr-2">{item.quantity}x</span>
+                            {item.menu_items?.name || 'Unknown Item'}
                         </span>
-                        {item.portion !== 'full' && <span className="text-xs text-gray-500 bg-white px-1 border rounded">{item.portion}</span>}
+                        {item.portion !== 'full' && <span className="text-[10px] text-amber-300 bg-amber-500/10 px-1.5 py-0.5 border border-amber-500/20 rounded uppercase font-bold tracking-wide">{item.portion}</span>}
                     </div>
                 ))}
             </div>
@@ -151,10 +278,10 @@ export const KitchenDashboard = () => {
                 {NEXT_STATUS[order.status] && (
                     <button
                         onClick={() => updateStatus(order.id, NEXT_STATUS[order.status])}
-                        className={`flex-1 border px-3 py-1 rounded-lg text-sm font-bold shadow-sm uppercase tracking-wide transition-colors
+                        className={`flex-1 border px-3 py-2 rounded-xl text-sm font-bold shadow-lg uppercase tracking-wide transition-all transform active:scale-95
                             ${NEXT_STATUS[order.status] === 'completed'
-                                ? 'bg-green-600 text-white border-green-600 hover:bg-green-700'
-                                : 'bg-white border-current hover:bg-gray-50'}`}
+                                ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white border-transparent hover:shadow-emerald-500/20'
+                                : 'bg-white/10 border-white/10 text-white hover:bg-white/20'}`}
                     >
                         Mark {NEXT_STATUS[order.status] === 'completed' ? 'Paid & Clear' : NEXT_STATUS[order.status]}
                     </button>
@@ -162,7 +289,7 @@ export const KitchenDashboard = () => {
                 {order.status !== 'completed' && order.status !== 'cancelled' && (
                     <button
                         onClick={() => updateStatus(order.id, 'cancelled')}
-                        className="text-red-500 hover:text-red-700 text-xs px-2"
+                        className="text-red-400 hover:text-white hover:bg-red-500/20 border border-transparent hover:border-red-500/20 rounded-xl px-3 transition-colors"
                         title="Cancel Order"
                     >
                         ✕
@@ -172,44 +299,301 @@ export const KitchenDashboard = () => {
         </div>
     );
 
-    if (loading) return <div className="p-8 text-center text-gray-500">Loading Dashboard...</div>;
+    if (loading) return (
+        <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500"></div>
+            <p className="mt-4 text-emerald-500 font-bold animate-pulse">Loading Dashboard...</p>
+        </div>
+    );
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col">
+        <div className="min-h-screen bg-slate-950 flex flex-col relative overflow-hidden text-gray-100 font-sans">
+            {/* Background Effects */}
+            <div className="absolute top-0 left-0 w-full h-[500px] bg-indigo-900/20 rounded-full blur-[120px] pointer-events-none"></div>
+            <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-emerald-900/10 rounded-full blur-[100px] pointer-events-none"></div>
+
+            {toast && (
+                <Toast
+                    message={toast.message}
+                    type={toast.type}
+                    onClose={() => setToast(null)}
+                />
+            )}
             <audio ref={audioRef} src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" />
-            <header className="bg-white border-b px-6 py-4 flex justify-between items-center sticky top-0 z-10">
-                <h1 className="text-xl font-bold text-gray-800">Kitchen Dashboard</h1>
-                <div className="text-sm text-green-600 flex items-center gap-2">
-                    <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                    Live Updates
+
+            <header className="glass-nav px-8 py-5 flex justify-between items-center sticky top-0 z-30 mb-6 shrink-0">
+                <div className="flex items-center gap-6">
+                    <h1 className="text-2xl font-display font-bold text-white tracking-tight flex items-center gap-2">
+                        <span className="text-3xl">👨‍🍳</span> Kitchen<span className="text-emerald-400">OS</span>
+                    </h1>
+                    <div className="h-6 w-px bg-white/10"></div>
+                    <button
+                        onClick={() => { setIsManagerMode(!isManagerMode); if (!isManagerMode) fetchMenu(); }}
+                        className={`px-4 py-2 rounded-xl text-sm font-bold border transition-all ${isManagerMode
+                            ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30 shadow-glow-emerald'
+                            : 'bg-white/5 text-gray-400 border-white/5 hover:bg-white/10 hover:text-white'}`}
+                    >
+                        {isManagerMode ? '← View Live Orders' : '📝 Manage Menu'}
+                    </button>
+                </div>
+                <div className="flex items-center gap-4">
+                    <div className="text-xs font-bold px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-2 animate-pulse">
+                        <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
+                        LIVE SYSTEM
+                    </div>
                 </div>
             </header>
 
-            <div className="flex-1 overflow-x-auto p-6">
-                <div className="flex gap-6 min-w-max">
-                    {['pending', 'preparing', 'ready', 'completed'].map(status => (
-                        <div key={status} className="w-80 flex-shrink-0">
-                            <h2 className={`font-bold uppercase tracking-widest text-xs mb-4 flex justify-between px-1 
-                                ${status === 'completed' ? 'text-green-600' : 'text-gray-500'}`}>
-                                {status === 'completed' ? '✅ PAID / HISTORY' : status}
-                                <span className={`px-2 rounded-full text-xs ${status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600'}`}>
-                                    {getOrdersByStatus(status).length}
-                                </span>
-                            </h2>
-                            <div className="space-y-4">
-                                {getOrdersByStatus(status).map(order => (
-                                    <OrderCard key={order.id} order={order} />
-                                ))}
-                                {getOrdersByStatus(status).length === 0 && (
-                                    <div className="text-center py-8 border-2 border-dashed border-gray-200 rounded-xl text-gray-400 text-sm">
-                                        No orders in {status}
+            {isManagerMode ? (
+                <div className="p-4 md:p-8 max-w-6xl mx-auto w-full animate-fade-in relative z-10 overflow-y-auto">
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 md:mb-10 gap-4">
+                        <div>
+                            <h2 className="text-3xl md:text-4xl font-display font-bold text-white mb-2">Menu Management</h2>
+                            <p className="text-gray-400 text-sm">Organize your kitchen's recipes and pricing.</p>
+                        </div>
+                        <button
+                            className="w-full md:w-auto btn-primary text-white px-6 py-3 md:px-8 md:py-4 rounded-2xl font-bold shadow-2xl hover:shadow-emerald-500/20 transition-all transform active:scale-95 flex items-center justify-center gap-2 group"
+                            onClick={() => setIsAddModalOpen(true)}
+                        >
+                            <span className="text-xl group-hover:rotate-90 transition-transform bg-white/20 w-8 h-8 rounded-full flex items-center justify-center">+</span> Add New Recipe
+                        </button>
+                    </div>
+
+                    <div className="space-y-6 md:space-y-8 pb-20">
+                        {menuCategories.map(cat => (
+                            <div key={cat.id} className="glass-panel rounded-3xl p-5 md:p-8 border border-white/5 relative overflow-hidden group/cat">
+                                {/* Decor */}
+                                <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl -mr-16 -mt-16 transition-opacity opacity-50 group-hover/cat:opacity-100"></div>
+
+                                <div className="flex items-center justify-between mb-8 relative z-10 border-b border-white/5 pb-4">
+                                    <h3 className="text-2xl font-bold text-white flex items-center gap-3">
+                                        {cat.name}
+                                        <span className="text-[10px] font-bold text-gray-400 bg-white/5 px-2 py-1 rounded-md border border-white/5 uppercase tracking-widest">
+                                            {cat.menu_items.length} Items
+                                        </span>
+                                    </h3>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative z-10">
+                                    {cat.menu_items.map((item: any) => (
+                                        <div key={item.id} className="flex items-center justify-between p-4 bg-black/20 hover:bg-white/5 rounded-2xl group transition-all border border-white/5 hover:border-emerald-500/30">
+                                            <div className="flex items-center gap-5">
+                                                <div className={`w-3 h-3 rounded-full flex-shrink-0 ring-2 ring-offset-2 ring-offset-slate-900 ${item.is_veg ? 'bg-green-500 ring-green-500/30' : 'bg-red-500 ring-red-500/30'}`}></div>
+                                                <div>
+                                                    <div className="font-display font-bold text-gray-100 text-lg leading-tight mb-1 group-hover:text-emerald-300 transition-colors">{item.name}</div>
+                                                    <div className="text-sm font-mono text-emerald-400/80 mb-1">₹{item.price_full}</div>
+                                                    <p className="text-xs text-gray-500 line-clamp-1 max-w-[200px]">{item.description}</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all transform sm:translate-x-4 sm:group-hover:translate-x-0">
+                                                <button
+                                                    onClick={() => setEditingItem(item)}
+                                                    className="bg-blue-500/10 text-blue-400 px-4 py-2 rounded-xl text-xs font-bold border border-blue-500/20 hover:bg-blue-500/20 transition-colors"
+                                                >
+                                                    Edit
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeleteItem(item.id)}
+                                                    className="bg-red-500/10 text-red-400 px-4 py-2 rounded-xl text-xs font-bold border border-red-500/20 hover:bg-red-500/20 transition-colors"
+                                                >
+                                                    Delete
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {cat.menu_items.length === 0 && (
+                                        <div className="col-span-2 text-center py-12 border-2 border-dashed border-white/5 rounded-2xl text-gray-500 text-sm">
+                                            No items in this category yet.
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Add Modal */}
+                    <Modal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title="Add New Recipe">
+                        <form onSubmit={handleAddItem} className="space-y-5">
+                            <div>
+                                <label className="block text-xs font-bold text-gray-400 mb-2 uppercase tracking-wider">Recipe Name</label>
+                                <input
+                                    type="text" required
+                                    className="input-field w-full"
+                                    value={newItem.name} onChange={e => setNewItem({ ...newItem, name: e.target.value })}
+                                    placeholder="e.g. Truffle Pasta"
+                                />
+                            </div>
+                            <div className="grid grid-cols-2 gap-5">
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-400 mb-2 uppercase tracking-wider">Price (₹)</label>
+                                    <input
+                                        type="number" required min="0"
+                                        className="input-field w-full"
+                                        value={newItem.price} onChange={e => setNewItem({ ...newItem, price: e.target.value })}
+                                        placeholder="299"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-400 mb-2 uppercase tracking-wider">Type</label>
+                                    <select
+                                        className="input-field w-full appearance-none"
+                                        value={newItem.is_veg ? 'veg' : 'non-veg'}
+                                        onChange={e => setNewItem({ ...newItem, is_veg: e.target.value === 'veg' })}
+                                    >
+                                        <option value="veg">🥬 Veg</option>
+                                        <option value="non-veg">🍗 Non-Veg</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-gray-400 mb-2 uppercase tracking-wider">Category</label>
+                                <select
+                                    className="input-field w-full appearance-none"
+                                    value={newItem.category_id} onChange={e => setNewItem({ ...newItem, category_id: e.target.value })}
+                                >
+                                    {menuCategories.map(cat => (
+                                        <option key={cat.id} value={cat.id}>{cat.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-gray-400 mb-2 uppercase tracking-wider">Description</label>
+                                <textarea
+                                    className="input-field w-full h-24 resize-none"
+                                    value={newItem.description} onChange={e => setNewItem({ ...newItem, description: e.target.value })}
+                                    placeholder="Describe the dish..."
+                                ></textarea>
+                            </div>
+                            <button type="submit" className="w-full btn-primary text-white py-4 rounded-xl font-bold shadow-lg shadow-emerald-500/20">
+                                Save Recipe
+                            </button>
+                        </form>
+                    </Modal>
+
+                    {/* Edit Modal */}
+                    <Modal isOpen={!!editingItem} onClose={() => setEditingItem(null)} title="Edit Recipe">
+                        {editingItem && (
+                            <form onSubmit={handleUpdateItem} className="space-y-5">
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-400 mb-2 uppercase tracking-wider">Recipe Name</label>
+                                    <input
+                                        type="text" required
+                                        className="input-field w-full"
+                                        value={editingItem.name}
+                                        onChange={e => setEditingItem({ ...editingItem, name: e.target.value })}
+                                    />
+                                </div>
+                                <div className="grid grid-cols-2 gap-5">
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-400 mb-2 uppercase tracking-wider">Price (₹)</label>
+                                        <input
+                                            type="number" required min="0"
+                                            className="input-field w-full"
+                                            value={editingItem.price_full}
+                                            onChange={e => setEditingItem({ ...editingItem, price_full: e.target.value })}
+                                        />
                                     </div>
-                                )}
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-400 mb-2 uppercase tracking-wider">Type</label>
+                                        <select
+                                            className="input-field w-full appearance-none"
+                                            value={editingItem.is_veg ? 'veg' : 'non-veg'}
+                                            onChange={e => setEditingItem({ ...editingItem, is_veg: e.target.value === 'veg' })}
+                                        >
+                                            <option value="veg">🥬 Veg</option>
+                                            <option value="non-veg">🍗 Non-Veg</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-400 mb-2 uppercase tracking-wider">Description</label>
+                                    <textarea
+                                        className="input-field w-full h-24 resize-none"
+                                        value={editingItem.description || ''}
+                                        onChange={e => setEditingItem({ ...editingItem, description: e.target.value })}
+                                    ></textarea>
+                                </div>
+                                <div className="flex gap-4 pt-2">
+                                    <button type="button" onClick={() => setEditingItem(null)} className="flex-1 bg-white/5 text-gray-400 py-3 rounded-xl font-bold hover:bg-white/10 transition-colors border border-white/5">
+                                        Cancel
+                                    </button>
+                                    <button type="submit" className="flex-1 btn-primary text-white py-3 rounded-xl font-bold shadow-lg shadow-emerald-500/20">
+                                        Update Recipe
+                                    </button>
+                                </div>
+                            </form>
+                        )}
+                    </Modal>
+
+                    {/* Delete Confirmation Modal */}
+                    <Modal isOpen={deleteConfirmation.isOpen} onClose={() => setDeleteConfirmation({ isOpen: false, itemId: null })} title="Confirm Delete">
+                        <div className="space-y-6">
+                            <div className="text-center space-y-4">
+                                <div className="bg-red-500/10 text-red-500 w-20 h-20 rounded-full flex items-center justify-center mx-auto border border-red-500/20 shadow-[0_0_30px_rgba(239,68,68,0.2)]">
+                                    <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                </div>
+                                <div>
+                                    <h3 className="text-xl font-bold text-white mb-2">Delete this recipe?</h3>
+                                    <p className="text-gray-400 text-sm max-w-[250px] mx-auto leading-relaxed">
+                                        This action cannot be undone. It will be permanently removed.
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="flex gap-4">
+                                <button
+                                    onClick={() => setDeleteConfirmation({ isOpen: false, itemId: null })}
+                                    className="flex-1 bg-white/5 text-gray-400 py-3 rounded-xl font-bold hover:bg-white/10 transition-colors border border-white/5"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleConfirmDelete}
+                                    className="flex-1 bg-gradient-to-r from-red-500 to-red-600 text-white py-3 rounded-xl font-bold hover:from-red-600 hover:to-red-700 transition-all shadow-lg shadow-red-500/20"
+                                >
+                                    Delete Forever
+                                </button>
                             </div>
                         </div>
-                    ))}
+                    </Modal>
                 </div>
-            </div>
+            ) : (
+                // LANDSCAPE OPTIMIZED VIEW
+                <div className="flex-1 overflow-x-auto p-4 md:p-6 relative z-10 h-[calc(100vh-100px)]">
+                    <div className="flex gap-6 md:gap-8 min-w-max h-full">
+                        {['pending', 'preparing', 'ready', 'completed'].map(status => (
+                            <div key={status} className="w-[300px] md:w-[350px] flex-shrink-0 flex flex-col h-full rounded-2xl bg-white/5 border border-white/5 overflow-hidden">
+                                <div className={`p-4 border-b border-white/5 backdrop-blur-xl flex justify-between items-center
+                                    ${status === 'pending' ? 'bg-orange-500/10' : ''}
+                                    ${status === 'preparing' ? 'bg-blue-500/10' : ''}
+                                    ${status === 'ready' ? 'bg-emerald-500/10' : ''}
+                                `}>
+                                    <h2 className={`font-bold uppercase tracking-[0.2em] text-xs flex items-center gap-2
+                                        ${status === 'pending' ? 'text-orange-400' : ''}
+                                        ${status === 'preparing' ? 'text-blue-400' : ''}
+                                        ${status === 'ready' ? 'text-emerald-400' : ''}
+                                        ${status === 'completed' ? 'text-gray-400' : ''}
+                                    `}>
+                                        {status === 'completed' ? 'History' : status}
+                                    </h2>
+                                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-black/20 text-white/70">
+                                        {getOrdersByStatus(status).length}
+                                    </span>
+                                </div>
+                                <div className="space-y-4 flex-1 overflow-y-auto p-4 custom-scrollbar">
+                                    {getOrdersByStatus(status).map(order => (
+                                        <OrderCard key={order.id} order={order} />
+                                    ))}
+                                    {getOrdersByStatus(status).length === 0 && (
+                                        <div className="text-center py-10 opacity-30 text-xs uppercase tracking-widest font-bold">
+                                            No Orders
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

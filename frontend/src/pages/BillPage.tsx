@@ -26,6 +26,7 @@ export const BillPage = () => {
     const navigate = useNavigate();
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
+    const [showHistory, setShowHistory] = useState(false);
 
     const fetchOrders = () => {
         setLoading(true);
@@ -52,9 +53,9 @@ export const BillPage = () => {
         }
     }, [restaurantId, customerName, tableNumber]);
 
-    // SPLIT ORDERS: Active vs Paid
-    const activeOrders = orders.filter(o => o.status !== 'completed');
-    const paidOrders = orders.filter(o => o.status === 'completed');
+    // SPLIT ORDERS: Active vs Past (Paid/Cancelled)
+    const activeOrders = orders.filter(o => o.status !== 'completed' && o.status !== 'cancelled');
+    const paidOrders = orders.filter(o => o.status === 'completed' || o.status === 'cancelled');
 
     const totalDue = activeOrders.reduce((sum, order) => sum + order.total_amount, 0);
 
@@ -69,35 +70,43 @@ export const BillPage = () => {
         window.print();
     };
 
-    if (loading) return <div className="min-h-screen flex items-center justify-center bg-gray-50 text-gray-400 font-bold">Generating Bill...</div>;
+    if (loading) return (
+        <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500"></div>
+            <p className="mt-4 text-emerald-500 font-bold animate-pulse">Retrieving Bill...</p>
+        </div>
+    );
 
     // Helper Component for Order List
     const OrderList = ({ listOrders }: { listOrders: Order[] }) => (
         <div className="space-y-6">
             {listOrders.map((order, idx) => (
-                <div key={order.id} className="pb-6 border-b border-dashed border-gray-200 last:border-0 last:pb-0">
-                    <div className="flex justify-between items-center mb-2">
-                        <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                <div key={order.id} className="pb-6 border-b border-dashed border-white/10 last:border-0 last:pb-0">
+                    <div className="flex justify-between items-center mb-3">
+                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest font-mono">
                             {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </span>
-                        <span className={`text-xs font-bold px-2 py-0.5 rounded uppercase 
-                            ${order.status === 'completed' ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-500'}`}>
+                        <span className={`text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider border
+                            ${order.status === 'completed' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                                order.status === 'cancelled' ? 'bg-red-500/10 text-red-400 border-red-500/20' : 'bg-white/5 text-gray-400 border-white/10'}`}>
                             {order.status === 'completed' ? 'PAID' : order.status}
                         </span>
                     </div>
                     {order.order_items.map(item => (
-                        <div key={item.id} className="flex justify-between text-base py-1">
-                            <span className="text-gray-800">
-                                <span className="font-bold text-gray-900 mr-2">{item.quantity}x</span>
+                        <div key={item.id} className="flex justify-between text-sm py-1.5 font-mono text-gray-300">
+                            <span className={`${order.status === 'cancelled' ? 'line-through opacity-40' : ''}`}>
+                                <span className="font-bold text-white mr-2">{item.quantity}x</span>
                                 {item.menu_items?.name}
-                                {item.portion !== 'full' && <span className="text-gray-400 text-xs ml-1">({item.portion})</span>}
+                                {item.portion !== 'full' && <span className="text-amber-500 text-[10px] ml-2 uppercase">({item.portion})</span>}
                             </span>
-                            <span className="text-gray-900 font-medium">₹{item.price_at_time * item.quantity}</span>
+                            <span className={`font-bold ${order.status === 'cancelled' ? 'line-through opacity-40' : 'text-gray-100'}`}>
+                                ₹{item.price_at_time * item.quantity}
+                            </span>
                         </div>
                     ))}
                     {order.status === 'completed' && (
-                        <div className="mt-2 text-right">
-                            <span className="text-sm font-bold text-gray-400">Paid: ₹{order.total_amount}</span>
+                        <div className="mt-3 text-right">
+                            <span className="text-xs font-bold text-emerald-500 uppercase tracking-wider">Paid: ₹{order.total_amount}</span>
                         </div>
                     )}
                 </div>
@@ -106,50 +115,82 @@ export const BillPage = () => {
     );
 
     return (
-        <div className="min-h-screen bg-gray-100 pb-24 print:bg-white print:pb-0">
+        <div className="min-h-screen bg-slate-950 pb-24 print:bg-white print:pb-0 relative overflow-hidden font-sans">
+            {/* Background Effects (Screen Only) */}
+            <div className="absolute top-0 left-0 w-full h-[500px] bg-indigo-900/10 rounded-full blur-[120px] pointer-events-none no-print"></div>
+
             {/* Header - Hidden in Print */}
-            <header className="bg-white/80 backdrop-blur-md shadow-sm p-4 sticky top-0 z-10 flex justify-between items-center no-print">
-                <button onClick={() => navigate('/menu')} className="text-gray-600 font-bold flex items-center gap-1">
-                    &larr; Menu
+            <header className="glass-nav px-6 py-4 sticky top-0 z-30 flex justify-between items-center no-print shadow-lg border-b border-white/5 mb-6">
+                <button onClick={() => navigate('/menu')} className="text-gray-300 font-bold flex items-center gap-2 hover:text-white transition-colors">
+                    <span className="text-xl">←</span> Menu
                 </button>
-                <h1 className="font-bold text-lg font-display">Your Bill</h1>
-                <button onClick={fetchOrders} className="text-primary-600 text-sm font-bold bg-primary-50 px-3 py-1 rounded-lg">
+                <h1 className="font-display font-bold text-lg text-white">Your Bill</h1>
+                <button onClick={fetchOrders} className="text-emerald-400 text-xs font-bold bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-lg hover:bg-emerald-500/20 transition-all uppercase tracking-wider">
                     Refresh
                 </button>
             </header>
 
-            <div className="p-6 max-w-md mx-auto print:p-0 print:max-w-none space-y-6">
+            <div className="p-6 max-w-md mx-auto print:p-0 print:max-w-none space-y-6 relative z-10">
 
                 {/* 1. ACTIVE BILL SECTION */}
-                <div className="bg-white relative shadow-2xl print:shadow-none print:w-full rounded-xl overflow-hidden">
-                    <div className="bg-gray-900 p-6 text-white text-center">
-                        <p className="text-gray-400 text-xs uppercase tracking-widest mb-1">TOTAL DUE</p>
-                        <h2 className="text-4xl font-display font-bold">₹{totalDue}</h2>
-                        <p className="text-gray-500 text-xs mt-2">{customerName} | Table {tableNumber || 'N/A'}</p>
+                <div className="bg-slate-900 relative shadow-2xl print:shadow-none print:w-full rounded-2xl overflow-hidden border border-white/5 print:border-black">
+                    {/* Decorative Receipt Edge (Top) */}
+                    <div className="h-2 bg-gradient-to-r from-emerald-500 to-teal-600 no-print"></div>
+
+                    <div className="bg-slate-800/50 p-8 text-center border-b border-white/5 print:bg-white print:text-black">
+                        <p className="text-gray-400 text-[10px] uppercase tracking-[0.3em] mb-2 font-bold print:text-gray-600">TOTAL DUE</p>
+                        <h2 className="text-5xl font-display font-bold text-white print:text-black mb-1">₹{totalDue}</h2>
+                        <div className="flex items-center justify-center gap-2 mt-4 text-xs font-mono text-gray-500 uppercase tracking-wider">
+                            <span className="bg-white/5 px-2 py-1 rounded">{customerName}</span>
+                            <span className="text-gray-600">•</span>
+                            <span className="bg-white/5 px-2 py-1 rounded">Table {tableNumber || 'N/A'}</span>
+                        </div>
                     </div>
 
-                    <div className="p-8">
+                    <div className="p-8 bg-slate-900 print:bg-white">
                         {activeOrders.length === 0 ? (
-                            <div className="text-center py-6">
-                                <p className="text-gray-400 mb-2">No active unpaid orders.</p>
-                                <p className="text-xs text-green-500 font-bold">You're all settled! 🎉</p>
+                            <div className="text-center py-8">
+                                <div className="w-16 h-16 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">🎉</div>
+                                <p className="text-gray-400 mb-2 font-display">No active unpaid orders.</p>
+                                <p className="text-xs text-emerald-500 font-bold uppercase tracking-widest">You're all settled!</p>
                             </div>
                         ) : (
                             <>
-                                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 border-b pb-2">Current Orders</h3>
+                                <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-6 border-b border-white/5 pb-2">Current Orders</h3>
                                 <OrderList listOrders={activeOrders} />
                             </>
                         )}
                     </div>
+
+                    {/* Decorative Receipt Zigzag (Bottom) - CSS trick */}
+                    <div className="h-4 w-full bg-slate-900 border-t border-white/5 relative print:hidden" style={{
+                        backgroundImage: 'linear-gradient(45deg, transparent 75%, #0f172a 75%), linear-gradient(-45deg, transparent 75%, #0f172a 75%)',
+                        backgroundSize: '20px 20px',
+                        backgroundPosition: '0 0, 0 0'
+                    }}></div>
                 </div>
 
-                {/* 2. HISTORY SECTION (PAID ORDERS) */}
+                {/* 2. HISTORY TOGGLE BUTTON */}
                 {paidOrders.length > 0 && (
-                    <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 no-print">
-                        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
-                            <span>🕒</span> Previous Paid Orders
-                        </h3>
-                        <OrderList listOrders={paidOrders} />
+                    <div className="no-print">
+                        <button
+                            onClick={() => setShowHistory(!showHistory)}
+                            className={`w-full py-4 rounded-xl font-bold flex items-center justify-between px-6 transition-all border border-white/5
+                                ${showHistory ? 'bg-slate-800 text-white' : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white'}`}
+                        >
+                            <span className="flex items-center gap-2">
+                                <span className="text-xl">🕒</span>
+                                <span className="text-sm">Order History ({paidOrders.length})</span>
+                            </span>
+                            <span className="text-xs opacity-50">{showHistory ? 'Hide ▲' : 'Show ▼'}</span>
+                        </button>
+
+                        {/* Collapsible History Section */}
+                        {showHistory && (
+                            <div className="glass-panel p-6 mt-4 rounded-2xl border border-white/5 animate-slide-up">
+                                <OrderList listOrders={paidOrders} />
+                            </div>
+                        )}
                     </div>
                 )}
 
@@ -157,23 +198,23 @@ export const BillPage = () => {
                 <div className="space-y-4 pt-4 no-print">
                     <button
                         onClick={handlePrint}
-                        className="w-full bg-white border-2 border-gray-900 text-gray-900 py-4 rounded-xl font-bold shadow-lg flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors"
+                        className="w-full bg-slate-800 text-white py-4 rounded-xl font-bold shadow-lg flex items-center justify-center gap-3 hover:bg-slate-700 transition-colors border border-white/5"
                     >
-                        <span>🖨️</span> Print Bill
+                        <span>🖨️</span> Print Receipt
                     </button>
 
                     <button
                         onClick={() => navigate('/menu')}
-                        className="w-full bg-primary-600 text-white py-4 rounded-xl font-bold shadow-lg flex items-center justify-center gap-2 hover:bg-primary-700 transition-colors"
+                        className="w-full btn-primary text-white py-4 rounded-xl font-bold shadow-lg flex items-center justify-center gap-3 hover:shadow-emerald-500/20 transition-all"
                     >
-                        + Add Items
+                        Add More Items <span className="font-sans text-lg">+</span>
                     </button>
 
                     <button
                         onClick={handleLogout}
-                        className="w-full text-red-500 font-bold py-4 text-sm"
+                        className="w-full text-red-400 hover:text-red-300 font-bold py-4 text-xs uppercase tracking-widest transition-colors"
                     >
-                        Logout & Exit
+                        End Session & Logout
                     </button>
                 </div>
             </div>

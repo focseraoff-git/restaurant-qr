@@ -111,83 +111,142 @@ export const MenuPage = () => {
 
     const cartCount = cart.reduce((acc, item) => acc + item.quantity, 0);
 
-    return (
-        <div className="bg-gray-50 min-h-screen pb-32">
-            {/* Cinematic Header */}
-            <div className="relative h-48 bg-gray-900 overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-t from-gray-900 to-transparent z-10"></div>
-                {/* Abstract or Restaurant Image Background */}
-                <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1514362545857-3bc16549766b?auto=format&fit=crop&q=80')] bg-cover bg-center opacity-40 animate-pan-slow"></div>
+    // Reliable Food Image Mapping
+    const getFoodImage = (itemName: string) => {
+        const lowerName = itemName.toLowerCase();
+        if (lowerName.includes('burger')) return 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=400&q=80';
+        if (lowerName.includes('pizza')) return 'https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=400&q=80';
+        if (lowerName.includes('pasta') || lowerName.includes('spaghetti')) return 'https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?auto=format&fit=crop&w=400&q=80';
+        if (lowerName.includes('salad') || lowerName.includes('veg')) return 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=400&q=80';
+        if (lowerName.includes('chicken') || lowerName.includes('grill')) return 'https://images.unsplash.com/photo-1532550907401-a500c9a57435?auto=format&fit=crop&w=400&q=80';
+        if (lowerName.includes('briyani') || lowerName.includes('rice')) return 'https://images.unsplash.com/photo-1589302168068-964664d93dc0?auto=format&fit=crop&w=400&q=80';
+        if (lowerName.includes('cake') || lowerName.includes('dessert')) return 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=400&q=80';
+        if (lowerName.includes('coffee') || lowerName.includes('tea') || lowerName.includes('drink')) return 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?auto=format&fit=crop&w=400&q=80';
 
-                <div className="absolute bottom-0 left-0 p-6 z-20 w-full">
-                    <h2 className="text-4xl font-display font-bold text-white mb-1 shadow-sm">
+        // Default Premium Fallback (Abstract Dark Food)
+        return 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80';
+    };
+
+    const getCategoryIcon = (catName: string) => {
+        const lower = catName.toLowerCase();
+        if (lower.includes('special')) return '👨‍🍳';
+        if (lower.includes('veg') && !lower.includes('non')) return '🥬';
+        if (lower.includes('non')) return '🍗';
+        if (lower.includes('main') || lower.includes('course')) return '🍛';
+        if (lower.includes('dessert') || lower.includes('sweet')) return '🍰';
+        if (lower.includes('bev') || lower.includes('drink')) return '🍹';
+        if (lower.includes('starter')) return '🥟';
+        if (lower.includes('pizza')) return '🍕';
+        if (lower.includes('burger')) return '🍔';
+        return '🍽️';
+    };
+
+    return (
+        <div className="bg-slate-950 min-h-screen pb-32 relative">
+            {/* 🌟 Premium Ambient Background */}
+            <div className="fixed inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-indigo-900/20 via-slate-950 to-slate-950 z-0 pointer-events-none"></div>
+
+            {/* Cinematic Header */}
+            <div className="relative h-64 overflow-hidden shadow-2xl">
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/50 to-transparent z-10"></div>
+                {/* Abstract or Restaurant Image Background */}
+                <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1552566626-52f8b828add9?auto=format&fit=crop&q=80')] bg-cover bg-center animate-pan-slow opacity-60"></div>
+                <div className="absolute inset-0 bg-slate-950/30 backdrop-blur-[2px]"></div>
+
+                <div className="absolute bottom-0 left-0 p-8 z-20 w-full animate-fade-in-up">
+                    <h2 className="text-5xl font-display font-bold text-white mb-2 shadow-sm drop-shadow-lg tracking-tight">
                         Our Menu
                     </h2>
-                    <p className="text-gray-300 text-sm font-light tracking-wide">Handcrafted dishes for you.</p>
+                    <div className="flex items-center gap-3">
+                        <div className="h-[1px] w-8 bg-emerald-500"></div>
+                        <p className="text-gray-200 text-sm font-light tracking-[0.2em] uppercase">Handcrafted Culinary Delights</p>
+                    </div>
                 </div>
 
                 {/* Bill Button (Top Right) */}
                 <button
                     onClick={() => navigate('/bill')}
-                    className="absolute top-4 right-4 z-30 bg-white/10 backdrop-blur-md border border-white/20 text-white px-4 py-2 rounded-full text-xs font-bold hover:bg-white/20 transition-all flex items-center gap-2"
+                    className="absolute top-6 right-6 z-30 bg-black/40 backdrop-blur-xl border border-white/10 text-white px-5 py-2.5 rounded-full text-xs font-bold hover:bg-white/10 hover:border-emerald-500/50 transition-all flex items-center gap-2 group shadow-lg"
                 >
-                    <span>📜</span> View Bill
+                    <span className="group-hover:rotate-12 transition-transform">📜</span> View Bill
                 </button>
             </div>
 
-            {/* Sticky Categories */}
-            <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-gray-100 shadow-sm pt-4 pb-2">
-                <div className="flex overflow-x-auto no-scrollbar gap-4 px-6 pb-2">
-                    {categories.map(cat => (
-                        <button
-                            key={cat.id}
-                            onClick={() => scrollToCategory(cat.id)}
-                            className={`whitespace-nowrap px-5 py-2 rounded-full text-sm font-bold transition-all transform duration-300
-                                ${activeCategory === cat.id
-                                    ? 'bg-gray-900 text-white shadow-lg scale-105'
-                                    : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
-                        >
-                            {cat.name}
-                        </button>
-                    ))}
+            {/* Premium Sticky Category Slider */}
+            <div className="sticky top-0 z-40 bg-slate-950/80 backdrop-blur-xl border-b border-white/5 py-4 shadow-2xl shadow-black/50">
+                <div className="relative">
+                    {/* Hiding Scrollbar but keeping functionality */}
+                    <div className="flex overflow-x-auto no-scrollbar gap-3 px-6 pb-2 items-center scroll-smooth snap-x">
+                        {categories.map(cat => (
+                            <button
+                                key={cat.id}
+                                onClick={() => scrollToCategory(cat.id)}
+                                className={`flex items-center gap-2 px-6 py-3 rounded-2xl text-sm font-bold transition-all transform duration-300 border snap-center
+                                    ${activeCategory === cat.id
+                                        ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white border-transparent shadow-lg shadow-emerald-900/50 scale-105'
+                                        : 'bg-white/5 text-gray-400 border-white/5 hover:bg-white/10 hover:border-white/10 hover:text-white'}`}
+                            >
+                                <span className="text-lg filter drop-shadow-md">{getCategoryIcon(cat.name)}</span>
+                                <span className="whitespace-nowrap tracking-wide">{cat.name}</span>
+                            </button>
+                        ))}
+                    </div>
+                    {/* Fade Edges for Scroll Implied */}
+                    <div className="absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-slate-950 to-transparent pointer-events-none"></div>
+                    <div className="absolute inset-y-0 left-0 w-8 bg-gradient-to-r from-slate-950 to-transparent pointer-events-none"></div>
                 </div>
             </div>
 
             {/* Menu Items */}
-            <div className="px-4 pt-6 space-y-12">
-                {categories.map(cat => (
+            <div className="px-4 pt-8 space-y-16 relative z-10">
+                {categories.map((cat, idx) => (
                     <div
                         key={cat.id}
                         id={cat.id}
-                        ref={el => categoryRefs.current[cat.id] = el}
-                        className="scroll-mt-40"
+                        ref={(el) => { if (el) categoryRefs.current[cat.id] = el; }}
+                        className="scroll-mt-48 transition-opacity duration-700"
+                        style={{ animationDelay: `${idx * 100}ms` }}
                     >
-                        <div className="flex items-center gap-4 mb-6">
-                            <h3 className="text-2xl font-display font-bold text-gray-800">{cat.name}</h3>
-                            <div className="h-px bg-gray-200 flex-grow"></div>
+                        <div className="flex items-end gap-6 mb-8 relative">
+                            <h3 className="text-3xl font-display font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-200 to-teal-100 pl-2">{cat.name}</h3>
+                            <div className="h-px bg-gradient-to-r from-white/20 to-transparent flex-grow mb-2"></div>
+                            <div className="absolute -left-2 top-0 bottom-0 w-1 bg-gradient-to-b from-emerald-500 to-transparent rounded-full opacity-50"></div>
                         </div>
 
                         <div className="grid gap-6">
                             {cat.menu_items.map(item => (
-                                <div key={item.id} className="group bg-white rounded-3xl p-4 shadow-sm hover:shadow-xl transition-all duration-300 border border-transparent hover:border-gray-100 relative overflow-hidden">
-                                    {/* Background Hover Decoration */}
-                                    <div className="absolute -right-10 -top-10 w-32 h-32 bg-gray-50 rounded-full blur-2xl group-hover:bg-primary-50 transition-colors opacity-0 group-hover:opacity-100"></div>
+                                <div key={item.id} className="group bg-slate-900/50 backdrop-blur-sm rounded-[2rem] p-4 shadow-xl border border-white/5 hover:bg-slate-800/60 hover:border-white/10 transition-all duration-500 relative overflow-hidden">
+                                    {/* Selection Highlight */}
+                                    <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
 
-                                    <div className="relative z-10 flex gap-4">
-                                        <div className="flex-1">
-                                            <div className="flex items-top justify-between mb-2">
-                                                <div className="flex items-center gap-2">
-                                                    <div className={`w-4 h-4 border flex items-center justify-center rounded-sm flex-shrink-0 ${item.is_veg ? 'border-green-600' : 'border-red-600'}`}>
-                                                        <div className={`w-2 h-2 rounded-full ${item.is_veg ? 'bg-green-600' : 'bg-red-600'}`}></div>
-                                                    </div>
-                                                    <h4 className="font-bold text-lg text-gray-900 leading-tight group-hover:text-primary-700 transition-colors">{item.name}</h4>
+                                    <div className="relative z-10 flex gap-5">
+                                        {/* Image - Left Side for Layout Balance */}
+                                        <div className="w-32 h-32 rounded-2xl overflow-hidden shadow-2xl flex-shrink-0 relative">
+                                            <div className="absolute inset-0 bg-gradient-to-tr from-black/40 to-transparent z-10"></div>
+                                            <img
+                                                src={item.image || getFoodImage(item.name)}
+                                                alt={item.name}
+                                                className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700"
+                                            />
+                                            {/* Veg/Non-Veg Badge on Image */}
+                                            <div className="absolute top-2 left-2 z-20 bg-black/60 backdrop-blur-md p-1 rounded-full border border-white/10">
+                                                <div className={`w-3 h-3 rounded-full border-[1.5px] flex items-center justify-center ${item.is_veg ? 'border-green-500' : 'border-red-500'}`}>
+                                                    <div className={`w-1.5 h-1.5 rounded-full ${item.is_veg ? 'bg-green-500' : 'bg-red-500'}`}></div>
                                                 </div>
                                             </div>
+                                        </div>
 
-                                            <p className="text-gray-500 text-sm leading-relaxed mb-4 line-clamp-2">{item.description}</p>
+                                        <div className="flex-1 flex flex-col">
+                                            <div className="mb-2">
+                                                <h4 className="font-bold text-xl text-gray-100 leading-tight group-hover:text-emerald-300 transition-colors mb-2 font-display">{item.name}</h4>
+                                                <p className="text-gray-400 text-xs leading-relaxed line-clamp-2 font-light tracking-wide">{item.description}</p>
+                                            </div>
 
-                                            <div className="flex items-center justify-between mt-auto">
-                                                <span className="font-display font-bold text-xl text-gray-900">₹{item.price_full}</span>
+                                            <div className="flex items-center justify-between mt-auto pt-4 border-t border-white/5">
+                                                <div className="flex flex-col">
+                                                    <span className="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Price</span>
+                                                    <span className="font-display font-bold text-xl text-white">₹{item.price_full}</span>
+                                                </div>
                                                 <button
                                                     onClick={() => {
                                                         addToCart({
@@ -197,21 +256,13 @@ export const MenuPage = () => {
                                                             quantity: 1,
                                                             portion: 'full'
                                                         });
-                                                        // Haptic feedback logic could go here
                                                     }}
-                                                    className="bg-gray-900 text-white px-6 py-2 rounded-xl font-bold text-sm shadow-lg hover:bg-black active:scale-95 transition-all transform"
+                                                    className="bg-white text-slate-950 px-5 py-2.5 rounded-xl font-bold text-sm shadow-lg hover:bg-emerald-400 transition-all transform active:scale-95 group-hover:shadow-emerald-500/20"
                                                 >
-                                                    Add +
+                                                    Add <span className="ml-1">+</span>
                                                 </button>
                                             </div>
                                         </div>
-
-                                        {/* Image (Even if simple placeholder, structure supports it) */}
-                                        {item.image && (
-                                            <div className="w-28 h-28 rounded-2xl overflow-hidden shadow-md flex-shrink-0">
-                                                <img src={item.image} alt={item.name} className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500" />
-                                            </div>
-                                        )}
                                     </div>
                                 </div>
                             ))}
@@ -220,18 +271,25 @@ export const MenuPage = () => {
                 ))}
             </div>
 
-            {/* Floating Cart Button (If items in cart) */}
+            {/* Floating Cart Button */}
             {cartCount > 0 && (
-                <div className="fixed bottom-6 left-0 right-0 px-6 z-50 animate-slide-up">
+                <div className="fixed bottom-6 left-0 right-0 px-6 z-50 animate-slide-up pb-safe">
                     <button
                         onClick={() => navigate('/cart')}
-                        className="w-full bg-gray-900 text-white p-4 rounded-2xl shadow-2xl flex items-center justify-between border border-gray-800 hover:bg-black transition-colors"
+                        className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 text-white p-1 rounded-2xl shadow-2xl shadow-emerald-900/80 hover:shadow-emerald-500/30 transition-shadow group"
                     >
-                        <div className="flex items-center gap-3">
-                            <span className="bg-white/20 px-3 py-1 rounded-lg font-bold text-sm">{cartCount} ITEMS</span>
-                            <span className="text-gray-300 text-sm">View your cart</span>
+                        <div className="bg-slate-900/90 backdrop-blur-sm rounded-xl p-4 flex items-center justify-between border border-emerald-500/20 group-hover:bg-slate-900/80 transition-colors">
+                            <div className="flex items-center gap-4">
+                                <div className="bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 px-3 py-1.5 rounded-lg font-bold text-sm backdrop-blur-md shadow-inner">
+                                    {cartCount} ITEMS
+                                </div>
+                                <span className="text-gray-300 text-sm tracking-wide font-medium">View Cart</span>
+                            </div>
+                            <div className="flex items-center gap-2 pr-2">
+                                <span className="font-bold text-lg font-display text-white group-hover:text-emerald-400 transition-colors">Checkout</span>
+                                <span className="bg-white text-emerald-600 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold group-hover:translate-x-1 transition-transform">→</span>
+                            </div>
                         </div>
-                        <span className="font-bold text-lg">Checkout &rarr;</span>
                     </button>
                 </div>
             )}
