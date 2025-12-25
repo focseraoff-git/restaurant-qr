@@ -7,42 +7,57 @@ import { Html5Qrcode } from 'html5-qrcode';
 export const LandingPage = () => {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
-    const { setRestaurantId, setTableId, setCustomerName, setOrderType, restaurantId } = useStore();
+    const {
+        setRestaurantId, setTableId, setCustomerName, setOrderType,
+        restaurantId, customerName, tableNumber, cart
+    } = useStore();
 
     const [name, setName] = useState('');
     const [step, setStep] = useState(1); // 1: Name, 2: Order Type
-    const [tableNumber, setTableNumber] = useState<string | null>(null);
+    const [fetchingTable, setFetchingTable] = useState(false);
+
+    // UI State
+    const [restaurant, setRestaurant] = useState<any>(null);
 
     useEffect(() => {
-        const rId = searchParams.get('restaurantId');
+        const rId = searchParams.get('restaurantId') || restaurantId;
         const tId = searchParams.get('tableId');
 
-        if (rId) setRestaurantId(rId);
+        if (rId) {
+            setRestaurantId(rId);
+            // Fetch Restaurant Info
+            api.get(`/restaurants/${rId}`).then(res => {
+                setRestaurant(res.data);
+            }).catch(console.error);
+        }
 
         if (tId) {
-            // Fetch table details to confirm
+            setFetchingTable(true);
             api.get(`/tables/${tId}`).then(res => {
                 if (res.data) {
                     setTableId(tId, res.data.table_number);
-                    setTableNumber(res.data.table_number);
                 }
-            }).catch(console.error);
+            }).catch(console.error).finally(() => setFetchingTable(false));
         }
-    }, [searchParams, setRestaurantId, setTableId]);
+    }, [searchParams, restaurantId]);
 
-    // QR Scanner Effect
+    // Auto-Skip to Step 2 if name exists (Persistence)
+    useEffect(() => {
+        if (customerName) {
+            setName(customerName);
+            setStep(2);
+        }
+    }, [customerName]);
+
+    // QR Mobile Scanner Logic (unchanged from previous step, but re-included here)
     useEffect(() => {
         if (!restaurantId && !searchParams.get('restaurantId')) {
             const html5QrCode = new Html5Qrcode("reader");
-
             const startScanner = async () => {
                 try {
                     await html5QrCode.start(
                         { facingMode: "environment" },
-                        {
-                            fps: 10,
-                            qrbox: { width: 250, height: 250 }
-                        },
+                        { fps: 10, qrbox: { width: 250, height: 250 } },
                         (decodedText: string) => {
                             try {
                                 const url = new URL(decodedText);
@@ -52,46 +67,35 @@ export const LandingPage = () => {
                                         window.location.href = decodedText;
                                     });
                                 }
-                            } catch (e) {
-                                console.log('Not a URL');
-                            }
+                            } catch (e) { console.log('Not a URL'); }
                         },
-                        (_error: any) => {
-                            // ignore frame errors
-                        }
+                        (_error: any) => { }
                     );
-                } catch (err) {
-                    console.error("Error starting scanner", err);
-                }
+                } catch (err) { console.error("Error starting scanner", err); }
             };
-
             startScanner();
-
             return () => {
-                if (html5QrCode.isScanning) {
-                    html5QrCode.stop().catch(console.error);
-                }
+                if (html5QrCode.isScanning) { html5QrCode.stop().catch(console.error); }
                 html5QrCode.clear();
             };
         }
     }, [restaurantId, searchParams]);
 
-
     const handleNameSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (name.trim()) {
             setCustomerName(name);
-            setStep(2); // Always go to step 2 to let user choose
+            setStep(2);
         }
     };
-
-    const [showTableInput, setShowTableInput] = useState(false);
-    const [manualTable, setManualTable] = useState('');
 
     const handleOrderType = (type: 'dine-in' | 'takeaway') => {
         setOrderType(type);
         navigate('/menu');
     };
+
+    const [showTableInput, setShowTableInput] = useState(false);
+    const [manualTable, setManualTable] = useState('');
 
     const handleDineInClick = () => {
         if (tableNumber) {
@@ -109,6 +113,7 @@ export const LandingPage = () => {
         }
     };
 
+    // Manual Table Input Modal
     if (showTableInput) {
         return (
             <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -117,7 +122,7 @@ export const LandingPage = () => {
                     <p className="text-gray-500 mb-6">Check the sticker on your table.</p>
                     <form onSubmit={submitManualTable}>
                         <input
-                            type="number"
+                            type="text"
                             value={manualTable}
                             onChange={(e) => setManualTable(e.target.value)}
                             placeholder="e.g., 9"
@@ -125,20 +130,8 @@ export const LandingPage = () => {
                             autoFocus
                         />
                         <div className="flex gap-3">
-                            <button
-                                type="button"
-                                onClick={() => setShowTableInput(false)}
-                                className="flex-1 py-3 text-gray-500 font-bold"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                type="submit"
-                                disabled={!manualTable}
-                                className="flex-1 bg-primary-600 text-white py-3 rounded-xl font-bold shadow-lg disabled:opacity-50"
-                            >
-                                Start Ordering
-                            </button>
+                            <button type="button" onClick={() => setShowTableInput(false)} className="flex-1 py-3 text-gray-500 font-bold">Cancel</button>
+                            <button type="submit" disabled={!manualTable} className="flex-1 bg-primary-600 text-white py-3 rounded-xl font-bold shadow-lg disabled:opacity-50">Start Ordering</button>
                         </div>
                     </form>
                 </div>
@@ -150,9 +143,7 @@ export const LandingPage = () => {
         return (
             <div className="fixed inset-0 bg-black text-white flex flex-col items-center justify-center p-4">
                 <div id="reader" className="w-full h-full max-w-md overflow-hidden rounded-xl"></div>
-                <p className="absolute bottom-8 bg-black/50 px-4 py-2 rounded-full text-sm font-medium backdrop-blur-md">
-                    Scan Restaurant QR Code header
-                </p>
+                <p className="absolute bottom-8 bg-black/50 px-4 py-2 rounded-full text-sm font-medium backdrop-blur-md">Scanning...</p>
             </div>
         );
     }
@@ -163,14 +154,41 @@ export const LandingPage = () => {
             <div className="absolute top-0 left-0 w-64 h-64 bg-primary-100 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2 opacity-50"></div>
             <div className="absolute bottom-0 right-0 w-96 h-96 bg-orange-100 rounded-full blur-3xl translate-x-1/3 translate-y-1/3 opacity-50"></div>
 
+            {/* Cart Icon */}
+            {cart.length > 0 && (
+                <button
+                    onClick={() => navigate('/cart')}
+                    className="absolute top-6 right-6 bg-white p-3 rounded-full shadow-lg border border-gray-100 z-50 animate-bounce-short"
+                >
+                    <span className="text-2xl">🛒</span>
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 border-white">
+                        {cart.reduce((sum, i) => sum + i.quantity, 0)}
+                    </span>
+                </button>
+            )}
+
             <div className="relative z-10 w-full max-w-md">
                 <div className="text-center mb-12">
-                    {/* Logo Placeholder */}
-                    <div className="w-20 h-20 bg-primary-500 rounded-2xl mx-auto mb-6 flex items-center justify-center shadow-lg shadow-primary-200">
-                        <span className="text-4xl">🍽️</span>
-                    </div>
-                    <h1 className="text-4xl font-display font-bold text-gray-900 mb-2">Welcome!</h1>
-                    <p className="text-gray-500">Let's get you some delicious food.</p>
+                    {/* Restaurant Branding */}
+                    {restaurant ? (
+                        <div className="flex flex-col items-center animate-fade-in-up">
+                            {restaurant.logo_url ? (
+                                <img src={restaurant.logo_url} alt={restaurant.name} className="w-24 h-24 rounded-full object-cover mb-4 shadow-xl border-4 border-white" />
+                            ) : (
+                                <div className="w-24 h-24 bg-primary-600 rounded-full mb-4 flex items-center justify-center shadow-xl border-4 border-white text-4xl text-white font-bold">
+                                    {restaurant.name.charAt(0)}
+                                </div>
+                            )}
+                            <h1 className="text-3xl font-display font-bold text-gray-900 mb-1">{restaurant.name}</h1>
+                            <p className="text-gray-500 text-sm">Delicious food awaits!</p>
+                        </div>
+                    ) : (
+                        <div className="animate-pulse">
+                            <div className="w-20 h-20 bg-gray-200 rounded-full mx-auto mb-4"></div>
+                            <div className="h-8 bg-gray-200 rounded w-3/4 mx-auto mb-2"></div>
+                            <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto"></div>
+                        </div>
+                    )}
                 </div>
 
                 {step === 1 && (
@@ -201,6 +219,7 @@ export const LandingPage = () => {
                         <div className="text-center mb-8">
                             <h2 className="text-2xl font-bold text-gray-900">Hello, {name}! 👋</h2>
                             <p className="text-primary-600 font-medium italic mt-2">"People who love to eat are always the best people."</p>
+                            <button onClick={() => setStep(1)} className="text-xs text-gray-400 mt-2 hover:underline">Change Name</button>
                         </div>
 
                         <div className="grid gap-4">
