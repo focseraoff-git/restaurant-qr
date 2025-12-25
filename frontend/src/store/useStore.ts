@@ -20,7 +20,7 @@ interface AppState {
 
     setTableId: (id: string | null, number?: string) => void;
     setRestaurantId: (id: string) => void;
-    setCustomerName: (name: string) => void;
+    setCustomerName: (name: string | null) => void;
     setOrderType: (type: 'dine-in' | 'takeaway') => void;
 
     addToCart: (item: CartItem) => void;

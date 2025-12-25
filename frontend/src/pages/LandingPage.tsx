@@ -217,7 +217,7 @@ export const LandingPage = () => {
                         <div className="text-center mb-8">
                             <h2 className="text-2xl font-bold text-gray-900">Hello, {name}! 👋</h2>
                             <p className="text-primary-600 font-medium italic mt-2">"People who love to eat are always the best people."</p>
-                            <button onClick={() => setStep(1)} className="text-xs text-gray-400 mt-2 hover:underline">Change Name</button>
+                            <button onClick={() => { setCustomerName(''); setStep(1); }} className="text-xs text-gray-400 mt-2 hover:underline">Change Name</button>
                         </div>
 
                         <div className="grid gap-4">
