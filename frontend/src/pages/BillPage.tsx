@@ -34,11 +34,6 @@ export const BillPage = () => {
             namesToCheck.push(`${customerName} (Table ${tableNumber})`);
         }
 
-        // Backend filters out 'completed' if we implemented that logic.
-        // Wait, user asked for Kitchen Dashboard to clear bill. 
-        // So here we assume if status is 'served' it shows, if 'completed' (paid) it hides?
-        // Or strictly Active Orders.
-
         api.get(`/orders/active`, {
             params: { restaurantId, customerName, tableNumber }
         })
@@ -57,7 +52,11 @@ export const BillPage = () => {
         }
     }, [restaurantId, customerName, tableNumber]);
 
-    const grandTotal = orders.reduce((sum, order) => sum + order.total_amount, 0);
+    // SPLIT ORDERS: Active vs Paid
+    const activeOrders = orders.filter(o => o.status !== 'completed');
+    const paidOrders = orders.filter(o => o.status === 'completed');
+
+    const totalDue = activeOrders.reduce((sum, order) => sum + order.total_amount, 0);
 
     const handleLogout = () => {
         if (confirm('Are you sure you want to logout? This will clear your session.')) {
@@ -72,6 +71,40 @@ export const BillPage = () => {
 
     if (loading) return <div className="min-h-screen flex items-center justify-center bg-gray-50 text-gray-400 font-bold">Generating Bill...</div>;
 
+    // Helper Component for Order List
+    const OrderList = ({ listOrders }: { listOrders: Order[] }) => (
+        <div className="space-y-6">
+            {listOrders.map((order, idx) => (
+                <div key={order.id} className="pb-6 border-b border-dashed border-gray-200 last:border-0 last:pb-0">
+                    <div className="flex justify-between items-center mb-2">
+                        <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                            {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                        <span className={`text-xs font-bold px-2 py-0.5 rounded uppercase 
+                            ${order.status === 'completed' ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-500'}`}>
+                            {order.status === 'completed' ? 'PAID' : order.status}
+                        </span>
+                    </div>
+                    {order.order_items.map(item => (
+                        <div key={item.id} className="flex justify-between text-base py-1">
+                            <span className="text-gray-800">
+                                <span className="font-bold text-gray-900 mr-2">{item.quantity}x</span>
+                                {item.menu_items?.name}
+                                {item.portion !== 'full' && <span className="text-gray-400 text-xs ml-1">({item.portion})</span>}
+                            </span>
+                            <span className="text-gray-900 font-medium">₹{item.price_at_time * item.quantity}</span>
+                        </div>
+                    ))}
+                    {order.status === 'completed' && (
+                        <div className="mt-2 text-right">
+                            <span className="text-sm font-bold text-gray-400">Paid: ₹{order.total_amount}</span>
+                        </div>
+                    )}
+                </div>
+            ))}
+        </div>
+    );
+
     return (
         <div className="min-h-screen bg-gray-100 pb-24 print:bg-white print:pb-0">
             {/* Header - Hidden in Print */}
@@ -85,63 +118,43 @@ export const BillPage = () => {
                 </button>
             </header>
 
-            <div className="p-6 max-w-md mx-auto print:p-0 print:max-w-none">
-                {/* Paper Receipt Look */}
-                <div className="bg-white relative shadow-2xl print:shadow-none print:w-full">
-                    {/* Zig Zag top pattern could go here with SVG but keeping clean for now */}
+            <div className="p-6 max-w-md mx-auto print:p-0 print:max-w-none space-y-6">
 
-                    <div className="p-8 text-center border-b-2 border-dashed border-gray-200">
-                        <h2 className="text-3xl font-display font-bold text-gray-900 mb-2">RECEIPT</h2>
-                        <p className="text-gray-400 text-sm uppercase tracking-widest">{new Date().toLocaleDateString()}</p>
-
-                        <div className="mt-4 inline-block bg-gray-100 px-4 py-2 rounded-lg">
-                            <p className="text-gray-600 font-bold text-sm">
-                                {customerName} <span className="mx-2 text-gray-300">|</span> Table {tableNumber || 'N/A'}
-                            </p>
-                        </div>
+                {/* 1. ACTIVE BILL SECTION */}
+                <div className="bg-white relative shadow-2xl print:shadow-none print:w-full rounded-xl overflow-hidden">
+                    <div className="bg-gray-900 p-6 text-white text-center">
+                        <p className="text-gray-400 text-xs uppercase tracking-widest mb-1">TOTAL DUE</p>
+                        <h2 className="text-4xl font-display font-bold">₹{totalDue}</h2>
+                        <p className="text-gray-500 text-xs mt-2">{customerName} | Table {tableNumber || 'N/A'}</p>
                     </div>
 
                     <div className="p-8">
-                        {orders.length === 0 ? (
-                            <div className="text-center py-10">
-                                <p className="text-gray-400 mb-2">No active orders.</p>
-                                <p className="text-xs text-gray-300">Your bill is clear.</p>
+                        {activeOrders.length === 0 ? (
+                            <div className="text-center py-6">
+                                <p className="text-gray-400 mb-2">No active unpaid orders.</p>
+                                <p className="text-xs text-green-500 font-bold">You're all settled! 🎉</p>
                             </div>
                         ) : (
-                            <div className="space-y-6">
-                                {orders.map((order, idx) => (
-                                    <div key={order.id} className="pb-6 border-b border-dashed border-gray-200 last:border-0 last:pb-0">
-                                        <div className="flex justify-between items-center mb-2">
-                                            <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Order #{idx + 1}</span>
-                                            <span className="text-xs font-bold bg-gray-100 text-gray-500 px-2 py-0.5 rounded uppercase">{order.status}</span>
-                                        </div>
-                                        {order.order_items.map(item => (
-                                            <div key={item.id} className="flex justify-between text-base py-1">
-                                                <span className="text-gray-800">
-                                                    <span className="font-bold text-gray-900 mr-2">{item.quantity}x</span>
-                                                    {item.menu_items?.name}
-                                                    {item.portion !== 'full' && <span className="text-gray-400 text-xs ml-1">({item.portion})</span>}
-                                                </span>
-                                                <span className="text-gray-900 font-medium">₹{item.price_at_time * item.quantity}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                ))}
-                            </div>
+                            <>
+                                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 border-b pb-2">Current Orders</h3>
+                                <OrderList listOrders={activeOrders} />
+                            </>
                         )}
-                    </div>
-
-                    <div className="bg-gray-900 p-8 text-white print:bg-white print:text-black print:border-t-2 print:border-black">
-                        <div className="flex justify-between items-center text-lg mb-1">
-                            <span className="text-gray-400 print:text-gray-600">Total</span>
-                            <span className="font-display font-bold text-3xl">₹{grandTotal}</span>
-                        </div>
-                        <p className="text-gray-500 text-xs mt-4 print:hidden">Includes all taxes. Thank you for dining!</p>
                     </div>
                 </div>
 
+                {/* 2. HISTORY SECTION (PAID ORDERS) */}
+                {paidOrders.length > 0 && (
+                    <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 no-print">
+                        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                            <span>🕒</span> Previous Paid Orders
+                        </h3>
+                        <OrderList listOrders={paidOrders} />
+                    </div>
+                )}
+
                 {/* Actions - Hidden in Print */}
-                <div className="space-y-4 mt-8 no-print">
+                <div className="space-y-4 pt-4 no-print">
                     <button
                         onClick={handlePrint}
                         className="w-full bg-white border-2 border-gray-900 text-gray-900 py-4 rounded-xl font-bold shadow-lg flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors"

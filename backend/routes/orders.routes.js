@@ -93,7 +93,7 @@ router.get('/active', async (req, res) => {
                 )
             `)
             .eq('restaurant_id', restaurantId)
-            .neq('status', 'completed') // Hide completed (paid) orders from active bill
+            // .neq('status', 'completed') // ALLOW completed orders so we can show them in History
             .order('created_at', { ascending: false });
 
         // Logic: specific table UUID match OR fuzzy name match

@@ -59,7 +59,9 @@ export const KitchenDashboard = () => {
     const fetchOrders = async () => {
         if (!restaurantId) return;
         try {
-            const res = await api.get(`/orders/restaurant/${restaurantId}`);
+            // Sanitize ID in case query params got appended to the URL path
+            const cleanId = restaurantId.split('&')[0];
+            const res = await api.get(`/orders/restaurant/${cleanId}`);
             setOrders(res.data);
             setLoading(false);
         } catch (error) {
@@ -149,7 +151,10 @@ export const KitchenDashboard = () => {
                 {NEXT_STATUS[order.status] && (
                     <button
                         onClick={() => updateStatus(order.id, NEXT_STATUS[order.status])}
-                        className="flex-1 bg-white border border-current px-3 py-1 rounded-lg text-sm font-bold shadow-sm hover:bg-gray-50 uppercase tracking-wide"
+                        className={`flex-1 border px-3 py-1 rounded-lg text-sm font-bold shadow-sm uppercase tracking-wide transition-colors
+                            ${NEXT_STATUS[order.status] === 'completed'
+                                ? 'bg-green-600 text-white border-green-600 hover:bg-green-700'
+                                : 'bg-white border-current hover:bg-gray-50'}`}
                     >
                         Mark {NEXT_STATUS[order.status] === 'completed' ? 'Paid & Clear' : NEXT_STATUS[order.status]}
                     </button>
@@ -184,9 +189,10 @@ export const KitchenDashboard = () => {
                 <div className="flex gap-6 min-w-max">
                     {['pending', 'preparing', 'ready', 'completed'].map(status => (
                         <div key={status} className="w-80 flex-shrink-0">
-                            <h2 className="font-bold text-gray-500 uppercase tracking-widest text-xs mb-4 flex justify-between">
-                                {status}
-                                <span className="bg-gray-200 text-gray-600 px-2 rounded-full text-xs">
+                            <h2 className={`font-bold uppercase tracking-widest text-xs mb-4 flex justify-between px-1 
+                                ${status === 'completed' ? 'text-green-600' : 'text-gray-500'}`}>
+                                {status === 'completed' ? '✅ PAID / HISTORY' : status}
+                                <span className={`px-2 rounded-full text-xs ${status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600'}`}>
                                     {getOrdersByStatus(status).length}
                                 </span>
                             </h2>
