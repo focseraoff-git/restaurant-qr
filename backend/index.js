@@ -4,7 +4,10 @@ const cors = require('cors');
 const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
-const port = process.env.PORT || 3000;
+const port = 3002; // Hardcoded new port
+
+// Test Route
+app.get('/test', (req, res) => res.send('SERVER_IS_ALIVE'));
 
 // Middleware
 app.use(cors());
@@ -23,12 +26,13 @@ const paymentsRoutes = require('./routes/payments.routes');
 const tablesRoutes = require('./routes/tables.routes');
 const restaurantsRoutes = require('./routes/restaurants.routes');
 
+console.log('Registering routes...');
+app.use('/api/restaurants', restaurantsRoutes);
 app.use('/api/orders', ordersRoutes);
 app.use('/api/menu', menuRoutes);
 app.use('/api/waiter', waiterRoutes);
 app.use('/api/payments', paymentsRoutes);
 app.use('/api/tables', tablesRoutes);
-app.use('/api/restaurants', restaurantsRoutes);
 
 app.get('/', (req, res) => {
   res.send('Restaurant QR System API is running');
