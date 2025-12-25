@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import api from '../utils/api';
 
@@ -46,6 +46,15 @@ export const KitchenDashboard = () => {
     const { restaurantId } = useParams();
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
+    const [lastCount, setLastCount] = useState(0);
+    const audioRef = useRef<HTMLAudioElement | null>(null);
+
+    // Request notification permission on mount
+    useEffect(() => {
+        if (Notification.permission !== "granted") {
+            Notification.requestPermission();
+        }
+    }, []);
 
     const fetchOrders = async () => {
         if (!restaurantId) return;
@@ -58,9 +67,25 @@ export const KitchenDashboard = () => {
         }
     };
 
+    // Effect for handling sound/notifications
+    useEffect(() => {
+        // Only play if we have more orders than before (and not the initial load)
+        if (orders.length > lastCount && lastCount !== 0) {
+            // New order!
+            if (Notification.permission === "granted") {
+                new Notification("New Order in Kitchen!", { body: "Check the dashboard." });
+            }
+            if (audioRef.current) {
+                audioRef.current.play().catch(e => console.log("Audio play failed", e));
+            }
+        }
+        // Always update lastCount
+        setLastCount(orders.length);
+    }, [orders.length]); // Intentionally checking length changes
+
     useEffect(() => {
         fetchOrders();
-        const interval = setInterval(fetchOrders, 15000); // Poll every 15s
+        const interval = setInterval(fetchOrders, 5000); // Polling increased to 5s for snappier updates
         return () => clearInterval(interval);
     }, [restaurantId]);
 
@@ -146,6 +171,7 @@ export const KitchenDashboard = () => {
 
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col">
+            <audio ref={audioRef} src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" />
             <header className="bg-white border-b px-6 py-4 flex justify-between items-center sticky top-0 z-10">
                 <h1 className="text-xl font-bold text-gray-800">Kitchen Dashboard</h1>
                 <div className="text-sm text-green-600 flex items-center gap-2">
