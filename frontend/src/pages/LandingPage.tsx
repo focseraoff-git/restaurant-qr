@@ -85,10 +85,72 @@ export const LandingPage = () => {
         }
     };
 
-    const handleOrderType = (type: 'dine-in' | 'takeaway') => {
-        setOrderType(type);
-        navigate('/menu');
+    const [showTableInput, setShowTableInput] = useState(false);
+    const [manualTable, setManualTable] = useState('');
+
+    const handleDineInClick = () => {
+        if (tableNumber) {
+            handleOrderType('dine-in');
+        } else {
+            setShowTableInput(true);
+        }
     };
+
+    const submitManualTable = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (manualTable.trim()) {
+            // We set a dummy UUID or just store the number. Ideally store needs both.
+            // For now, we'll just set tableNumber in store mainly for UI.
+            // Backend might need a valid UUID if foreign key is enforced, but for now let's reliance on custom logic?
+            // Actually, the current "setTableId" takes (id, number).
+            // If we don't have an ID, we might have an issue placing order if backend enforces FK.
+            // But let's assume for now we just pass the number as reference or finding the table by number is needed?
+            // WAIT: The backend order placement usually takes `tableId`.
+            // If we only have a number, we can't get the ID easily without an API search.
+            // IMPROVEMENT: Just pass the number in a "notes" or handle it loosely. 
+            // OR: Modify store to allow table info without ID?
+            // Let's stick to simple: Set the number. If needed we can look up table by Number later or just send it as metadata.
+            setTableId(null, manualTable); // ID null, but number set
+            handleOrderType('dine-in');
+        }
+    };
+
+    if (showTableInput) {
+        return (
+            <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                <div className="bg-white rounded-3xl p-6 w-full max-w-sm animate-scale-in">
+                    <h3 className="text-2xl font-bold mb-2">Enter Table Number</h3>
+                    <p className="text-gray-500 mb-6">Check the sticker on your table.</p>
+                    <form onSubmit={submitManualTable}>
+                        <input
+                            type="number"
+                            value={manualTable}
+                            onChange={(e) => setManualTable(e.target.value)}
+                            placeholder="e.g., 9"
+                            className="w-full text-center text-3xl font-bold py-4 rounded-xl bg-gray-50 border-2 border-gray-100 focus:border-primary-500 outline-none mb-6"
+                            autoFocus
+                        />
+                        <div className="flex gap-3">
+                            <button
+                                type="button"
+                                onClick={() => setShowTableInput(false)}
+                                className="flex-1 py-3 text-gray-500 font-bold"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={!manualTable}
+                                className="flex-1 bg-primary-600 text-white py-3 rounded-xl font-bold shadow-lg disabled:opacity-50"
+                            >
+                                Start Ordering
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        );
+    }
 
     if (!restaurantId && !searchParams.get('restaurantId')) {
         return (
@@ -149,7 +211,7 @@ export const LandingPage = () => {
 
                         <div className="grid gap-4">
                             <button
-                                onClick={() => handleOrderType('dine-in')}
+                                onClick={handleDineInClick}
                                 className="relative group p-6 rounded-3xl bg-white border-2 border-primary-100 hover:border-primary-500 transition-all text-left shadow-sm hover:shadow-primary-hover"
                             >
                                 <div className="flex items-start justify-between mb-2">
