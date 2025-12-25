@@ -77,6 +77,13 @@ export const KitchenDashboard = () => {
     const [menuCategories, setMenuCategories] = useState<any[]>([]);
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
 
+    // Manager Tabs
+    const [activeTab, setActiveTab] = useState<'menu' | 'waiters' | 'settlement'>('menu');
+    const [waiters, setWaiters] = useState<any[]>([]);
+    const [stats, setStats] = useState<any>(null);
+    const [isAddWaiterOpen, setIsAddWaiterOpen] = useState(false);
+    const [newWaiter, setNewWaiter] = useState({ name: '', email: '', password: '' });
+
     // Modal & Form State
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<any | null>(null);
@@ -137,9 +144,53 @@ export const KitchenDashboard = () => {
     useEffect(() => {
         fetchOrders();
         fetchMenu();
+        if (isManagerMode && activeTab === 'waiters') fetchWaiters();
+        if (isManagerMode && activeTab === 'settlement') fetchStats();
+
         const interval = setInterval(fetchOrders, 5000);
         return () => clearInterval(interval);
-    }, [restaurantId]);
+    }, [restaurantId, isManagerMode, activeTab]);
+
+    const fetchWaiters = async () => {
+        if (!restaurantId) return;
+        try {
+            const cleanId = restaurantId.split('&')[0];
+            const res = await api.get(`/waiters/${cleanId}`);
+            setWaiters(res.data);
+        } catch (error) { console.error(error); }
+    };
+
+    const fetchStats = async () => {
+        if (!restaurantId) return;
+        try {
+            const cleanId = restaurantId.split('&')[0];
+            const res = await api.get(`/waiters/${cleanId}/stats`);
+            setStats(res.data);
+        } catch (error) { console.error(error); }
+    };
+
+    const handleCreateWaiter = async (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
+            const cleanId = restaurantId?.split('&')[0];
+            await api.post('/waiters/create', { ...newWaiter, restaurantId: cleanId });
+            setNewWaiter({ name: '', email: '', password: '' });
+            setIsAddWaiterOpen(false);
+            showToast('Waiter Added Successfully!', 'success');
+            fetchWaiters();
+        } catch (error: any) {
+            showToast(error.response?.data?.error || 'Failed to create waiter', 'error');
+        }
+    };
+
+    const handleDeleteWaiter = async (id: string) => {
+        if (!window.confirm('Delete this waiter?')) return;
+        try {
+            await api.delete(`/waiters/${id}`);
+            showToast('Waiter Removed', 'success');
+            fetchWaiters();
+        } catch (error) { showToast('Failed to delete', 'error'); }
+    };
 
     const updateStatus = async (orderId: string, newStatus: string, estimatedTime?: number) => {
         try {
@@ -379,68 +430,166 @@ export const KitchenDashboard = () => {
                 <div className="p-4 md:p-8 max-w-6xl mx-auto w-full animate-fade-in relative z-10 overflow-y-auto">
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 md:mb-10 gap-4">
                         <div>
-                            <h2 className="text-3xl md:text-4xl font-display font-bold text-white mb-2">Menu Management</h2>
-                            <p className="text-gray-400 text-sm">Organize your kitchen's recipes and pricing.</p>
+                            <h2 className="text-3xl md:text-4xl font-display font-bold text-white mb-2">Manager Validation</h2>
+                            <div className="flex gap-4 mt-4">
+                                <button onClick={() => setActiveTab('menu')} className={`px-4 py-2 rounded-xl text-sm font-bold border transition-colors ${activeTab === 'menu' ? 'bg-white text-black border-white' : 'text-gray-400 border-white/10 hover:text-white'}`}>Menu</button>
+                                <button onClick={() => setActiveTab('waiters')} className={`px-4 py-2 rounded-xl text-sm font-bold border transition-colors ${activeTab === 'waiters' ? 'bg-white text-black border-white' : 'text-gray-400 border-white/10 hover:text-white'}`}>Waiters</button>
+                                <button onClick={() => setActiveTab('settlement')} className={`px-4 py-2 rounded-xl text-sm font-bold border transition-colors ${activeTab === 'settlement' ? 'bg-white text-black border-white' : 'text-gray-400 border-white/10 hover:text-white'}`}>Settlement</button>
+                            </div>
                         </div>
-                        <button
-                            className="w-full md:w-auto btn-primary text-white px-6 py-3 md:px-8 md:py-4 rounded-2xl font-bold shadow-2xl hover:shadow-emerald-500/20 transition-all transform active:scale-95 flex items-center justify-center gap-2 group"
-                            onClick={() => setIsAddModalOpen(true)}
-                        >
-                            <span className="text-xl group-hover:rotate-90 transition-transform bg-white/20 w-8 h-8 rounded-full flex items-center justify-center">+</span> Add New Recipe
-                        </button>
+                        {activeTab === 'menu' && (
+                            <button
+                                className="w-full md:w-auto btn-primary text-white px-6 py-3 md:px-8 md:py-4 rounded-2xl font-bold shadow-2xl hover:shadow-emerald-500/20 transition-all transform active:scale-95 flex items-center justify-center gap-2 group"
+                                onClick={() => setIsAddModalOpen(true)}
+                            >
+                                <span className="text-xl group-hover:rotate-90 transition-transform bg-white/20 w-8 h-8 rounded-full flex items-center justify-center">+</span> Add New Recipe
+                            </button>
+                        )}
+                        {activeTab === 'waiters' && (
+                            <button
+                                className="w-full md:w-auto btn-primary text-white px-6 py-3 md:px-8 md:py-4 rounded-2xl font-bold shadow-2xl hover:shadow-emerald-500/20 transition-all transform active:scale-95 flex items-center justify-center gap-2 group"
+                                onClick={() => setIsAddWaiterOpen(true)}
+                            >
+                                <span className="text-xl group-hover:rotate-90 transition-transform bg-white/20 w-8 h-8 rounded-full flex items-center justify-center">+</span> Add Waiter
+                            </button>
+                        )}
                     </div>
 
-                    <div className="space-y-6 md:space-y-8 pb-20">
-                        {menuCategories.map(cat => (
-                            <div key={cat.id} className="glass-panel rounded-3xl p-5 md:p-8 border border-white/5 relative overflow-hidden group/cat">
-                                {/* Decor */}
-                                <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl -mr-16 -mt-16 transition-opacity opacity-50 group-hover/cat:opacity-100"></div>
-
-                                <div className="flex items-center justify-between mb-8 relative z-10 border-b border-white/5 pb-4">
-                                    <h3 className="text-2xl font-bold text-white flex items-center gap-3">
-                                        {cat.name}
-                                        <span className="text-[10px] font-bold text-gray-400 bg-white/5 px-2 py-1 rounded-md border border-white/5 uppercase tracking-widest">
-                                            {cat.menu_items.length} Items
-                                        </span>
-                                    </h3>
+                    {activeTab === 'waiters' && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {waiters.map(waiter => (
+                                <div key={waiter.id} className="glass-panel p-6 rounded-2xl border border-white/10 flex justify-between items-center group">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-12 h-12 bg-gradient-to-tr from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-xl font-bold text-white">
+                                            {waiter.name.charAt(0)}
+                                        </div>
+                                        <div>
+                                            <h3 className="font-bold text-white text-lg">{waiter.name}</h3>
+                                            <p className="text-xs text-gray-400">{waiter.email}</p>
+                                        </div>
+                                    </div>
+                                    <button onClick={() => handleDeleteWaiter(waiter.id)} className="text-red-400 hover:bg-red-500/10 p-2 rounded-lg transition-colors opacity-0 group-hover:opacity-100">
+                                        🗑️
+                                    </button>
                                 </div>
+                            ))}
+                            <Modal isOpen={isAddWaiterOpen} onClose={() => setIsAddWaiterOpen(false)} title="Add Waiter">
+                                <form onSubmit={handleCreateWaiter} className="space-y-4">
+                                    <input placeholder="Name" className="input-field w-full" value={newWaiter.name} onChange={e => setNewWaiter({ ...newWaiter, name: e.target.value })} required />
+                                    <input placeholder="Email" type="email" className="input-field w-full" value={newWaiter.email} onChange={e => setNewWaiter({ ...newWaiter, email: e.target.value })} required />
+                                    <input placeholder="Password" type="password" className="input-field w-full" value={newWaiter.password} onChange={e => setNewWaiter({ ...newWaiter, password: e.target.value })} required />
+                                    <button type="submit" className="btn-primary w-full py-3 rounded-xl font-bold text-white">Create Account</button>
+                                </form>
+                            </Modal>
+                        </div>
+                    )}
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative z-10">
-                                    {cat.menu_items.map((item: any) => (
-                                        <div key={item.id} className="flex items-center justify-between p-4 bg-black/20 hover:bg-white/5 rounded-2xl group transition-all border border-white/5 hover:border-emerald-500/30">
-                                            <div className="flex items-center gap-5">
-                                                <div className={`w-3 h-3 rounded-full flex-shrink-0 ring-2 ring-offset-2 ring-offset-slate-900 ${item.is_veg ? 'bg-green-500 ring-green-500/30' : 'bg-red-500 ring-red-500/30'}`}></div>
-                                                <div>
-                                                    <div className="font-display font-bold text-gray-100 text-lg leading-tight mb-1 group-hover:text-emerald-300 transition-colors">{item.name}</div>
-                                                    <div className="text-sm font-mono text-emerald-400/80 mb-1">₹{item.price_full}</div>
-                                                    <p className="text-xs text-gray-500 line-clamp-1 max-w-[200px]">{item.description}</p>
-                                                </div>
-                                            </div>
-                                            <div className="flex gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all transform sm:translate-x-4 sm:group-hover:translate-x-0">
-                                                <button
-                                                    onClick={() => setEditingItem(item)}
-                                                    className="bg-blue-500/10 text-blue-400 px-4 py-2 rounded-xl text-xs font-bold border border-blue-500/20 hover:bg-blue-500/20 transition-colors"
-                                                >
-                                                    Edit
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDeleteItem(item.id)}
-                                                    className="bg-red-500/10 text-red-400 px-4 py-2 rounded-xl text-xs font-bold border border-red-500/20 hover:bg-red-500/20 transition-colors"
-                                                >
-                                                    Delete
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                    {cat.menu_items.length === 0 && (
-                                        <div className="col-span-2 text-center py-12 border-2 border-dashed border-white/5 rounded-2xl text-gray-500 text-sm">
-                                            No items in this category yet.
-                                        </div>
-                                    )}
+                    {activeTab === 'settlement' && stats && (
+                        <div className="space-y-8 animate-fade-in">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div className="glass-panel p-6 rounded-2xl border border-white/10">
+                                    <p className="text-xs font-bold text-gray-400 uppercase">Today's Revenue</p>
+                                    <p className="text-4xl font-mono font-bold text-emerald-400 mt-2">₹{stats.summary.revenue}</p>
+                                </div>
+                                <div className="glass-panel p-6 rounded-2xl border border-white/10">
+                                    <p className="text-xs font-bold text-gray-400 uppercase">Total Orders</p>
+                                    <p className="text-4xl font-mono font-bold text-white mt-2">{stats.summary.totalOrders}</p>
+                                </div>
+                                <div className="glass-panel p-6 rounded-2xl border border-white/10">
+                                    <p className="text-xs font-bold text-gray-400 uppercase">Delivered</p>
+                                    <p className="text-4xl font-mono font-bold text-blue-400 mt-2">{stats.summary.deliveredOrders}</p>
                                 </div>
                             </div>
-                        ))}
-                    </div>
+
+                            <div className="glass-panel p-8 rounded-3xl border border-white/10">
+                                <div className="flex justify-between items-center mb-6">
+                                    <h3 className="text-2xl font-bold text-white">Waiter Performance (Today)</h3>
+                                    <button onClick={() => window.print()} className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-xl text-sm font-bold text-white transition-colors">🖨️ Print Report</button>
+                                </div>
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-left text-gray-300">
+                                        <thead className="text-xs font-bold uppercase text-gray-500 border-b border-white/10">
+                                            <tr>
+                                                <th className="py-4">Waiter</th>
+                                                <th className="py-4">Delivered Qty</th>
+                                                <th className="py-4 text-right">Total Sales</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-white/5">
+                                            {stats.waiters.map((w: any) => (
+                                                <tr key={w.id}>
+                                                    <td className="py-4 font-bold text-white">{w.name}</td>
+                                                    <td className="py-4">{w.count}</td>
+                                                    <td className="py-4 text-right font-mono">₹{w.total}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                        <tfoot className="border-t border-white/10">
+                                            <tr>
+                                                <td className="py-4 font-bold text-emerald-400 text-lg">TOTAL</td>
+                                                <td className="py-4 font-bold text-white text-lg">{stats.summary.deliveredOrders}</td>
+                                                <td className="py-4 font-bold text-emerald-400 text-lg text-right font-mono">₹{stats.summary.revenue}</td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'menu' && (
+                        <div className="space-y-6 md:space-y-8 pb-20">
+                            {menuCategories.map(cat => (
+                                <div key={cat.id} className="glass-panel rounded-3xl p-5 md:p-8 border border-white/5 relative overflow-hidden group/cat">
+                                    {/* Decor */}
+                                    <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl -mr-16 -mt-16 transition-opacity opacity-50 group-hover/cat:opacity-100"></div>
+
+                                    <div className="flex items-center justify-between mb-8 relative z-10 border-b border-white/5 pb-4">
+                                        <h3 className="text-2xl font-bold text-white flex items-center gap-3">
+                                            {cat.name}
+                                            <span className="text-[10px] font-bold text-gray-400 bg-white/5 px-2 py-1 rounded-md border border-white/5 uppercase tracking-widest">
+                                                {cat.menu_items.length} Items
+                                            </span>
+                                        </h3>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative z-10">
+                                        {cat.menu_items.map((item: any) => (
+                                            <div key={item.id} className="flex items-center justify-between p-4 bg-black/20 hover:bg-white/5 rounded-2xl group transition-all border border-white/5 hover:border-emerald-500/30">
+                                                <div className="flex items-center gap-5">
+                                                    <div className={`w-3 h-3 rounded-full flex-shrink-0 ring-2 ring-offset-2 ring-offset-slate-900 ${item.is_veg ? 'bg-green-500 ring-green-500/30' : 'bg-red-500 ring-red-500/30'}`}></div>
+                                                    <div>
+                                                        <div className="font-display font-bold text-gray-100 text-lg leading-tight mb-1 group-hover:text-emerald-300 transition-colors">{item.name}</div>
+                                                        <div className="text-sm font-mono text-emerald-400/80 mb-1">₹{item.price_full}</div>
+                                                        <p className="text-xs text-gray-500 line-clamp-1 max-w-[200px]">{item.description}</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all transform sm:translate-x-4 sm:group-hover:translate-x-0">
+                                                    <button
+                                                        onClick={() => setEditingItem(item)}
+                                                        className="bg-blue-500/10 text-blue-400 px-4 py-2 rounded-xl text-xs font-bold border border-blue-500/20 hover:bg-blue-500/20 transition-colors"
+                                                    >
+                                                        Edit
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDeleteItem(item.id)}
+                                                        className="bg-red-500/10 text-red-400 px-4 py-2 rounded-xl text-xs font-bold border border-red-500/20 hover:bg-red-500/20 transition-colors"
+                                                    >
+                                                        Delete
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                        {cat.menu_items.length === 0 && (
+                                            <div className="col-span-2 text-center py-12 border-2 border-dashed border-white/5 rounded-2xl text-gray-500 text-sm">
+                                                No items in this category yet.
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
 
                     {/* Add Modal */}
                     <Modal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title="Add New Recipe">

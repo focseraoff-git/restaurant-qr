@@ -169,12 +169,13 @@ router.get('/restaurant/:restaurantId', async (req, res) => {
 
 // Update Order Status
 router.put('/:id/status', async (req, res) => {
-    const { status, estimated_prep_time } = req.body;
+    const { status, estimated_prep_time, waiter_id } = req.body;
     try {
-        const updateData = { status };
-        if (estimated_prep_time) {
-            updateData.estimated_prep_time = estimated_prep_time;
-        }
+        console.log(`[UPDATE] ID: ${req.params.id}, Status: ${status}, Time: ${estimated_prep_time}, Waiter: ${waiter_id}`);
+        const updateData = {};
+        if (status) updateData.status = status;
+        if (estimated_prep_time) updateData.estimated_prep_time = estimated_prep_time;
+        if (waiter_id) updateData.waiter_id = waiter_id;
 
         const { data, error } = await supabase
             .from('orders')
@@ -182,6 +183,12 @@ router.put('/:id/status', async (req, res) => {
             .eq('id', req.params.id)
             .select()
             .single();
+
+        if (error) {
+            console.error('[UPDATE ERROR]', error);
+            throw error;
+        }
+        res.json(data);
 
         if (error) throw error;
         res.json(data);

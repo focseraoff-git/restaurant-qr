@@ -21,7 +21,7 @@ const supabaseKey = process.env.SUPABASE_ANON_KEY;
 // Routes
 const ordersRoutes = require('./routes/orders.routes');
 const menuRoutes = require('./routes/menu.routes');
-const waiterRoutes = require('./routes/waiter.routes');
+const waitersRoutes = require('./routes/waiters.routes');
 const paymentsRoutes = require('./routes/payments.routes');
 const tablesRoutes = require('./routes/tables.routes');
 const restaurantsRoutes = require('./routes/restaurants.routes');
@@ -30,7 +30,7 @@ console.log('Registering routes...');
 app.use('/api/restaurants', restaurantsRoutes);
 app.use('/api/orders', ordersRoutes);
 app.use('/api/menu', menuRoutes);
-app.use('/api/waiter', waiterRoutes);
+app.use('/api/waiters', waitersRoutes);
 app.use('/api/payments', paymentsRoutes);
 app.use('/api/tables', tablesRoutes);
 

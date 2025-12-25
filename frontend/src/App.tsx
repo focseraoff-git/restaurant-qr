@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { Layout } from './layouts/Layout';
 import { MenuPage } from './pages/MenuPage';
 import { CartPage } from './pages/CartPage';
@@ -8,7 +8,14 @@ import { SuccessPage } from './pages/SuccessPage';
 import { BillPage } from './pages/BillPage';
 
 import { WaiterDashboard } from './pages/WaiterDashboard';
+import { WaiterLoginPage } from './pages/WaiterLoginPage';
 import { Protect } from './components/Protect';
+
+
+const RedirectToLogin = () => {
+  const { restaurantId } = useParams();
+  return <Navigate to={`/waiter/login/${restaurantId}`} replace />;
+};
 
 function App() {
   return (
@@ -23,8 +30,13 @@ function App() {
           <Route path="/bill" element={<BillPage />} />
         </Route>
 
+        <Route path="/waiter/login/:restaurantId" element={<WaiterLoginPage />} />
         <Route path="/kitchen/:restaurantId" element={<Protect><KitchenDashboard /></Protect>} />
-        <Route path="/waiter/:restaurantId" element={<Protect><WaiterDashboard /></Protect>} />
+        <Route path="/waiter/:restaurantId/dashboard" element={<WaiterDashboard />} />
+
+        {/* Redirect old waiter route */}
+        <Route path="/waiter/:restaurantId" element={<RedirectToLogin />} />
+
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
