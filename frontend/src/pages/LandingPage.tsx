@@ -237,13 +237,21 @@ export const LandingPage = () => {
 
                             <button
                                 onClick={() => handleOrderType('takeaway')}
-                                className="relative group p-6 rounded-3xl bg-white border-2 border-gray-100 hover:border-gray-900 transition-all text-left shadow-sm hover:shadow-lg"
+                                className="relative group p-6 rounded-3xl bg-gray-900 text-white border-2 border-gray-900 hover:bg-black transition-all text-left shadow-xl shadow-gray-200 overflow-hidden"
                             >
-                                <div className="flex items-start justify-between mb-2">
-                                    <div className="p-3 bg-gray-50 text-2xl rounded-2xl group-hover:bg-gray-900 group-hover:text-white transition-colors">🥡</div>
+                                {/* Decorative circle */}
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-gray-800 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2 opacity-50 group-hover:opacity-100 transition-opacity"></div>
+
+                                <div className="relative z-10 flex items-start justify-between mb-3">
+                                    <div className="p-3 bg-gray-800 text-2xl rounded-2xl text-white group-hover:scale-110 transition-transform">🥡</div>
+                                    <span className="bg-white/20 backdrop-blur-md text-white px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
+                                        Grab & Go
+                                    </span>
                                 </div>
-                                <h3 className="text-xl font-bold text-gray-900">Takeaway</h3>
-                                <p className="text-sm text-gray-500 mt-1">Pack your food and take it with you.</p>
+                                <div className="relative z-10">
+                                    <h3 className="text-xl font-bold text-white">Takeaway / Delivery</h3>
+                                    <p className="text-sm text-gray-400 mt-1 group-hover:text-gray-300 transition-colors">Pack your food and take it with you.</p>
+                                </div>
                             </button>
                         </div>
                     </div>
