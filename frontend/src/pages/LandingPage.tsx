@@ -88,6 +88,11 @@ export const LandingPage = () => {
     const [showTableInput, setShowTableInput] = useState(false);
     const [manualTable, setManualTable] = useState('');
 
+    const handleOrderType = (type: 'dine-in' | 'takeaway') => {
+        setOrderType(type);
+        navigate('/menu');
+    };
+
     const handleDineInClick = () => {
         if (tableNumber) {
             handleOrderType('dine-in');
@@ -99,18 +104,7 @@ export const LandingPage = () => {
     const submitManualTable = (e: React.FormEvent) => {
         e.preventDefault();
         if (manualTable.trim()) {
-            // We set a dummy UUID or just store the number. Ideally store needs both.
-            // For now, we'll just set tableNumber in store mainly for UI.
-            // Backend might need a valid UUID if foreign key is enforced, but for now let's reliance on custom logic?
-            // Actually, the current "setTableId" takes (id, number).
-            // If we don't have an ID, we might have an issue placing order if backend enforces FK.
-            // But let's assume for now we just pass the number as reference or finding the table by number is needed?
-            // WAIT: The backend order placement usually takes `tableId`.
-            // If we only have a number, we can't get the ID easily without an API search.
-            // IMPROVEMENT: Just pass the number in a "notes" or handle it loosely. 
-            // OR: Modify store to allow table info without ID?
-            // Let's stick to simple: Set the number. If needed we can look up table by Number later or just send it as metadata.
-            setTableId(null, manualTable); // ID null, but number set
+            setTableId('manual', manualTable);
             handleOrderType('dine-in');
         }
     };

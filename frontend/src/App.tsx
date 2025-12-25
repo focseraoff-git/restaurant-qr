@@ -6,6 +6,9 @@ import { KitchenDashboard } from './pages/KitchenDashboard';
 import { LandingPage } from './pages/LandingPage';
 import { SuccessPage } from './pages/SuccessPage';
 
+import { WaiterDashboard } from './pages/WaiterDashboard';
+import { Protect } from './components/Protect';
+
 function App() {
   return (
     <BrowserRouter>
@@ -18,7 +21,8 @@ function App() {
           <Route path="/success" element={<SuccessPage />} />
         </Route>
 
-        <Route path="/kitchen/:restaurantId" element={<KitchenDashboard />} />
+        <Route path="/kitchen/:restaurantId" element={<Protect><KitchenDashboard /></Protect>} />
+        <Route path="/waiter/:restaurantId" element={<Protect><WaiterDashboard /></Protect>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
