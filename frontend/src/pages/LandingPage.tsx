@@ -14,7 +14,6 @@ export const LandingPage = () => {
 
     const [name, setName] = useState('');
     const [step, setStep] = useState(1); // 1: Name, 2: Order Type
-    const [fetchingTable, setFetchingTable] = useState(false);
 
     // UI State
     const [restaurant, setRestaurant] = useState<any>(null);
@@ -32,12 +31,11 @@ export const LandingPage = () => {
         }
 
         if (tId) {
-            setFetchingTable(true);
             api.get(`/tables/${tId}`).then(res => {
                 if (res.data) {
                     setTableId(tId, res.data.table_number);
                 }
-            }).catch(console.error).finally(() => setFetchingTable(false));
+            }).catch(console.error);
         }
     }, [searchParams, restaurantId]);
 
