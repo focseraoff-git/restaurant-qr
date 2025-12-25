@@ -1,0 +1,37 @@
+require('dotenv').config();
+const express = require('express');
+const cors = require('cors');
+const { createClient } = require('@supabase/supabase-js');
+
+const app = express();
+const port = process.env.PORT || 3000;
+
+// Middleware
+app.use(cors());
+app.use(express.json());
+
+// Supabase Client (Initialized here or imported)
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_ANON_KEY;
+// const supabase = createClient(supabaseUrl, supabaseKey); // Moved to config/supabaseClient.js
+
+// Routes
+const ordersRoutes = require('./routes/orders.routes');
+const menuRoutes = require('./routes/menu.routes');
+const waiterRoutes = require('./routes/waiter.routes');
+const paymentsRoutes = require('./routes/payments.routes');
+const tablesRoutes = require('./routes/tables.routes');
+
+app.use('/api/orders', ordersRoutes);
+app.use('/api/menu', menuRoutes);
+app.use('/api/waiter', waiterRoutes);
+app.use('/api/payments', paymentsRoutes);
+app.use('/api/tables', tablesRoutes);
+
+app.get('/', (req, res) => {
+  res.send('Restaurant QR System API is running');
+});
+
+app.listen(port, () => {
+  console.log(`Server running on port ${port}`);
+});

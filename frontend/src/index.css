@@ -1,0 +1,23 @@
+@import "@fontsource/plus-jakarta-sans/400.css";
+@import "@fontsource/plus-jakarta-sans/500.css";
+@import "@fontsource/plus-jakarta-sans/600.css";
+@import "@fontsource/plus-jakarta-sans/700.css";
+@import "@fontsource/outfit/700.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-gray-50 text-gray-900 font-sans antialiased;
+  }
+  h1, h2, h3, h4 {
+    @apply font-display tracking-tight text-gray-900;
+  }
+}
+
+/* Glassmorphism utility */
+.glass-panel {
+    @apply bg-white/80 backdrop-blur-md border border-white/20 shadow-premium;
+}
