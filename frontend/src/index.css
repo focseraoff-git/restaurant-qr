@@ -1,23 +1,76 @@
-@import "@fontsource/plus-jakarta-sans/400.css";
-@import "@fontsource/plus-jakarta-sans/500.css";
-@import "@fontsource/plus-jakarta-sans/600.css";
-@import "@fontsource/plus-jakarta-sans/700.css";
-@import "@fontsource/outfit/700.css";
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
-  body {
-    @apply bg-gray-50 text-gray-900 font-sans antialiased;
+  html {
+    -webkit-tap-highlight-color: transparent;
   }
-  h1, h2, h3, h4 {
-    @apply font-display tracking-tight text-gray-900;
+
+  body {
+    @apply font-sans antialiased text-gray-900 bg-gray-50;
   }
 }
 
-/* Glassmorphism utility */
-.glass-panel {
-    @apply bg-white/80 backdrop-blur-md border border-white/20 shadow-premium;
+@layer utilities {
+  .font-display {
+    font-family: 'Playfair Display', serif;
+  }
+
+  .glass-panel {
+    @apply bg-white/80 backdrop-blur-md border border-white/20 shadow-xl;
+  }
+
+  .glass-nav {
+    @apply bg-white/90 backdrop-blur-lg border-b border-gray-100/50 shadow-sm supports-[backdrop-filter]:bg-white/60;
+  }
+
+  .text-shadow-sm {
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  }
+
+  .shadow-premium {
+    box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.1);
+  }
+
+  .shadow-premium-hover {
+    box-shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.15);
+  }
+
+  /* Hide scrollbar for category pills */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-primary-600 text-white font-bold py-3 px-6 rounded-xl shadow-lg shadow-primary-200 transform transition-all active:scale-95;
+  }
+}
+
+/* Print Specifics */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  body {
+    background: white;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+}
+
+.print-only {
+  display: none;
 }

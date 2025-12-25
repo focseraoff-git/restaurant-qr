@@ -38,7 +38,7 @@ export const CartPage = () => {
                 })),
                 orderType: orderType || 'dine-in',
                 customerName: finalCustomerName,
-                customerPhone: '9999999999' // Keep hardcoded for now or add input
+                customerPhone: '9999999999' // Keep hardcoded for now
             };
 
             const res = await api.post('/orders', payload);
@@ -54,71 +54,95 @@ export const CartPage = () => {
     };
 
     if (cart.length === 0) {
-        return <div className="text-center mt-10">Your cart is empty.</div>;
+        return (
+            <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-6 text-center">
+                <div className="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center mb-6 text-4xl animate-pulse">🛒</div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">Cart is Empty</h2>
+                <p className="text-gray-500 mb-8">Looks like you haven't added anything yet.</p>
+                <button onClick={() => navigate('/menu')} className="bg-gray-900 text-white px-8 py-3 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all">Go to Menu</button>
+            </div>
+        );
     }
 
     return (
-        <div className="pb-24 pt-6">
-            <h2 className="text-3xl font-display font-bold text-gray-900 mb-6 flex items-center gap-3">
-                <button onClick={() => window.history.back()} className="text-gray-400 hover:text-gray-900 transition-colors">
+        <div className="min-h-screen bg-gray-50 pb-32">
+
+            {/* Minimalist Header */}
+            <div className="bg-white/80 backdrop-blur-md sticky top-0 z-30 px-6 py-4 flex items-center gap-4 border-b border-gray-100">
+                <button onClick={() => navigate('/menu')} className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-600 hover:bg-gray-100 transition-colors">
                     &larr;
                 </button>
-                Your Order
-            </h2>
+                <h1 className="text-xl font-display font-bold text-gray-900">Your Order</h1>
+            </div>
 
-            {cart.length === 0 ? (
-                <div className="text-center py-20 opacity-60">
-                    <p className="text-xl font-medium">Your cart is empty</p>
-                    <p className="text-sm mt-2">Add some delicious items from the menu!</p>
-                </div>
-            ) : (
-                <>
-                    <div className="space-y-4 mb-8">
-                        {cart.map(item => (
-                            <div key={`${item.id}-${item.portion}-${item.taste}`} className="glass-panel p-4 rounded-2xl flex justify-between items-center">
-                                <div>
-                                    <h4 className="font-bold text-lg text-gray-900">{item.name}</h4>
-                                    <p className="text-sm text-gray-500 font-medium">₹{item.price} x {item.quantity}</p>
-                                    {item.portion !== 'full' && <span className="text-xs bg-primary-100 text-primary-900 px-2 py-0.5 rounded-full mt-1 inline-block uppercase tracking-wider">{item.portion}</span>}
-                                </div>
-                                <div className="flex items-center gap-3 bg-gray-50 rounded-xl p-1">
-                                    <button
-                                        onClick={() => updateQuantity(item.id, item.portion, -1)}
-                                        className="w-8 h-8 flex items-center justify-center bg-white rounded-lg shadow-sm text-gray-600 font-bold hover:bg-gray-100 active:scale-95 transition"
-                                    >
-                                        -
-                                    </button>
-                                    <span className="font-bold w-4 text-center">{item.quantity}</span>
-                                    <button
-                                        onClick={() => updateQuantity(item.id, item.portion, 1)}
-                                        className="w-8 h-8 flex items-center justify-center bg-white rounded-lg shadow-sm text-primary-600 font-bold hover:bg-primary-50 active:scale-95 transition"
-                                    >
-                                        +
-                                    </button>
+            <div className="p-6 space-y-6">
+                {cart.map(item => (
+                    <div key={`${item.id}-${item.portion}-${item.taste}`} className="bg-white p-5 rounded-3xl shadow-sm border border-gray-100 relative overflow-hidden group">
+                        {/* Interactive Hover Glow */}
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-gray-50 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+
+                        <div className="relative z-10 flex justify-between items-start">
+                            <div>
+                                <h4 className="font-bold text-lg text-gray-900 leading-tight mb-1">{item.name}</h4>
+                                <div className="flex items-center gap-2">
+                                    <span className="font-display font-bold text-gray-500">₹{item.price}</span>
+                                    {item.portion !== 'full' && (
+                                        <span className="text-[10px] uppercase font-bold bg-orange-100 text-orange-600 px-2 py-0.5 rounded-md tracking-wide">{item.portion}</span>
+                                    )}
                                 </div>
                             </div>
-                        ))}
-                    </div>
 
-                    <div className="glass-panel p-6 rounded-3xl sticky bottom-24">
-                        <div className="flex justify-between items-center mb-6 border-b border-gray-100 pb-4">
-                            <span className="text-gray-500 font-medium">Total Amount</span>
-                            <span className="text-3xl font-display font-bold text-gray-900">₹{total}</span>
+                            {/* Quantity Controls */}
+                            <div className="flex items-center bg-gray-900 rounded-xl p-1 shadow-md">
+                                <button
+                                    onClick={() => updateQuantity(item.id, item.portion, -1)}
+                                    className="w-8 h-8 flex items-center justify-center text-white hover:bg-white/20 rounded-lg transition-colors font-bold"
+                                >
+                                    -
+                                </button>
+                                <span className="w-6 text-center text-white font-bold text-sm">{item.quantity}</span>
+                                <button
+                                    onClick={() => updateQuantity(item.id, item.portion, 1)}
+                                    className="w-8 h-8 flex items-center justify-center text-white hover:bg-white/20 rounded-lg transition-colors font-bold"
+                                >
+                                    +
+                                </button>
+                            </div>
                         </div>
 
-                        <button
-                            onClick={placeOrder}
-                            disabled={submitting}
-                            className={`w-full py-4 rounded-xl font-bold text-lg shadow-premium hover:shadow-premium-hover transform transition-all active:scale-[0.98]
-                                ${submitting
-                                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                    : 'bg-primary-600 text-white hover:bg-primary-500'}`}
-                        >
-                            {submitting ? 'Placing Order...' : 'Place Order'}
-                        </button>
+                        {/* Total per Item */}
+                        <div className="mt-4 pt-4 border-t border-gray-50 flex justify-between items-center">
+                            <span className="text-xs text-gray-400 font-medium">Subtotal</span>
+                            <span className="font-bold text-gray-900">₹{item.price * item.quantity}</span>
+                        </div>
                     </div>
-                </>
-            )}
+                ))}
+            </div>
+
+            {/* Floating Checkout Bar */}
+            <div className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-xl border-t border-gray-100 p-6 z-50 rounded-t-3xl shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)]">
+                <div className="flex justify-between items-end mb-4 px-2">
+                    <div>
+                        <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">Total to Pay</p>
+                        <p className="text-3xl font-display font-bold text-gray-900">₹{total}</p>
+                    </div>
+                </div>
+
+                <button
+                    onClick={placeOrder}
+                    disabled={submitting}
+                    className={`w-full py-4 rounded-2xl font-bold text-lg shadow-xl flex items-center justify-center gap-3 transition-all transform active:scale-[0.98]
+                        ${submitting
+                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                            : 'bg-primary-600 text-white hover:bg-primary-700 hover:shadow-primary-hover'}`}
+                >
+                    {submitting ? (
+                        <><span>Processing...</span></>
+                    ) : (
+                        <><span>Confirm Order</span> <span>&rarr;</span></>
+                    )}
+                </button>
+            </div>
         </div>
     );
 };

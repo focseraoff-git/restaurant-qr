@@ -29,11 +29,15 @@ export const BillPage = () => {
 
     const fetchOrders = () => {
         setLoading(true);
-        // Construct Name Logic (Must match CartPage.tsx)
         const namesToCheck = [customerName];
         if (tableNumber) {
             namesToCheck.push(`${customerName} (Table ${tableNumber})`);
         }
+
+        // Backend filters out 'completed' if we implemented that logic.
+        // Wait, user asked for Kitchen Dashboard to clear bill. 
+        // So here we assume if status is 'served' it shows, if 'completed' (paid) it hides?
+        // Or strictly Active Orders.
 
         api.get(`/orders/active`, {
             params: { restaurantId, customerName, tableNumber }
@@ -46,7 +50,6 @@ export const BillPage = () => {
     useEffect(() => {
         if (restaurantId && customerName) {
             fetchOrders();
-            // Auto-refresh every 10 seconds to keep bill updated
             const interval = setInterval(fetchOrders, 10000);
             return () => clearInterval(interval);
         } else {
@@ -58,60 +61,68 @@ export const BillPage = () => {
 
     const handleLogout = () => {
         if (confirm('Are you sure you want to logout? This will clear your session.')) {
-            resetStore(); // Fully clear state including restaurantId
+            resetStore();
             navigate('/');
         }
     };
 
-    if (loading) return <div className="p-8 text-center">Loading Bill...</div>;
+    const handlePrint = () => {
+        window.print();
+    };
+
+    if (loading) return <div className="min-h-screen flex items-center justify-center bg-gray-50 text-gray-400 font-bold">Generating Bill...</div>;
 
     return (
-        <div className="min-h-screen bg-gray-50 pb-24">
-            <header className="bg-white shadow-sm p-4 sticky top-0 z-10 flex justify-between items-center">
+        <div className="min-h-screen bg-gray-100 pb-24 print:bg-white print:pb-0">
+            {/* Header - Hidden in Print */}
+            <header className="bg-white/80 backdrop-blur-md shadow-sm p-4 sticky top-0 z-10 flex justify-between items-center no-print">
                 <button onClick={() => navigate('/menu')} className="text-gray-600 font-bold flex items-center gap-1">
                     &larr; Menu
                 </button>
-                <h1 className="font-bold text-lg">Your Table Bill</h1>
-                <button onClick={fetchOrders} className="text-primary-600 text-sm font-bold">
-                    🔄 Refresh
+                <h1 className="font-bold text-lg font-display">Your Bill</h1>
+                <button onClick={fetchOrders} className="text-primary-600 text-sm font-bold bg-primary-50 px-3 py-1 rounded-lg">
+                    Refresh
                 </button>
             </header>
 
-            <div className="p-6 max-w-md mx-auto">
-                <div className="bg-white rounded-3xl shadow-lg overflow-hidden mb-6">
-                    <div className="bg-primary-600 p-6 text-white text-center">
-                        <p className="text-white/80 uppercase text-xs font-bold tracking-widest mb-1">Total Due</p>
-                        <p className="text-4xl font-display font-bold">₹{grandTotal}</p>
-                        <div className="flex justify-center gap-2 mt-4 text-xs font-medium bg-white/20 py-2 rounded-full inline-flex px-4">
-                            <span>{customerName}</span>
-                            <span>•</span>
-                            <span>Table {tableNumber || 'N/A'}</span>
+            <div className="p-6 max-w-md mx-auto print:p-0 print:max-w-none">
+                {/* Paper Receipt Look */}
+                <div className="bg-white relative shadow-2xl print:shadow-none print:w-full">
+                    {/* Zig Zag top pattern could go here with SVG but keeping clean for now */}
+
+                    <div className="p-8 text-center border-b-2 border-dashed border-gray-200">
+                        <h2 className="text-3xl font-display font-bold text-gray-900 mb-2">RECEIPT</h2>
+                        <p className="text-gray-400 text-sm uppercase tracking-widest">{new Date().toLocaleDateString()}</p>
+
+                        <div className="mt-4 inline-block bg-gray-100 px-4 py-2 rounded-lg">
+                            <p className="text-gray-600 font-bold text-sm">
+                                {customerName} <span className="mx-2 text-gray-300">|</span> Table {tableNumber || 'N/A'}
+                            </p>
                         </div>
                     </div>
 
-                    <div className="p-6">
+                    <div className="p-8">
                         {orders.length === 0 ? (
-                            <p className="text-center text-gray-500 py-8">No active orders found.</p>
+                            <div className="text-center py-10">
+                                <p className="text-gray-400 mb-2">No active orders.</p>
+                                <p className="text-xs text-gray-300">Your bill is clear.</p>
+                            </div>
                         ) : (
-                            <div className="space-y-8">
+                            <div className="space-y-6">
                                 {orders.map((order, idx) => (
-                                    <div key={order.id} className="relative">
-                                        <div className="flex justify-between items-center mb-3">
-                                            <span className="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded font-bold">
-                                                Order #{idx + 1}
-                                            </span>
-                                            <span className={`text-xs font-bold uppercase ${order.status === 'served' ? 'text-green-600' : 'text-orange-500'
-                                                }`}>
-                                                {order.status}
-                                            </span>
+                                    <div key={order.id} className="pb-6 border-b border-dashed border-gray-200 last:border-0 last:pb-0">
+                                        <div className="flex justify-between items-center mb-2">
+                                            <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Order #{idx + 1}</span>
+                                            <span className="text-xs font-bold bg-gray-100 text-gray-500 px-2 py-0.5 rounded uppercase">{order.status}</span>
                                         </div>
                                         {order.order_items.map(item => (
-                                            <div key={item.id} className="flex justify-between text-sm py-1 border-b border-gray-50 last:border-0">
+                                            <div key={item.id} className="flex justify-between text-base py-1">
                                                 <span className="text-gray-800">
-                                                    {item.quantity}x {item.menu_items?.name}
-                                                    {item.portion !== 'full' && <span className="text-xs text-gray-400 ml-1">({item.portion})</span>}
+                                                    <span className="font-bold text-gray-900 mr-2">{item.quantity}x</span>
+                                                    {item.menu_items?.name}
+                                                    {item.portion !== 'full' && <span className="text-gray-400 text-xs ml-1">({item.portion})</span>}
                                                 </span>
-                                                <span className="font-medium">₹{item.price_at_time * item.quantity}</span>
+                                                <span className="text-gray-900 font-medium">₹{item.price_at_time * item.quantity}</span>
                                             </div>
                                         ))}
                                     </div>
@@ -120,22 +131,34 @@ export const BillPage = () => {
                         )}
                     </div>
 
-                    <div className="bg-gray-50 p-4 text-center border-t border-gray-100">
-                        <p className="text-xs text-gray-400">Please pay at the counter.</p>
+                    <div className="bg-gray-900 p-8 text-white print:bg-white print:text-black print:border-t-2 print:border-black">
+                        <div className="flex justify-between items-center text-lg mb-1">
+                            <span className="text-gray-400 print:text-gray-600">Total</span>
+                            <span className="font-display font-bold text-3xl">₹{grandTotal}</span>
+                        </div>
+                        <p className="text-gray-500 text-xs mt-4 print:hidden">Includes all taxes. Thank you for dining!</p>
                     </div>
                 </div>
 
-                <div className="space-y-4">
+                {/* Actions - Hidden in Print */}
+                <div className="space-y-4 mt-8 no-print">
+                    <button
+                        onClick={handlePrint}
+                        className="w-full bg-white border-2 border-gray-900 text-gray-900 py-4 rounded-xl font-bold shadow-lg flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors"
+                    >
+                        <span>🖨️</span> Print Bill
+                    </button>
+
                     <button
                         onClick={() => navigate('/menu')}
-                        className="w-full bg-black text-white py-4 rounded-xl font-bold shadow-lg"
+                        className="w-full bg-primary-600 text-white py-4 rounded-xl font-bold shadow-lg flex items-center justify-center gap-2 hover:bg-primary-700 transition-colors"
                     >
-                        + Add More Items
+                        + Add Items
                     </button>
 
                     <button
                         onClick={handleLogout}
-                        className="w-full text-red-500 font-bold py-4"
+                        className="w-full text-red-500 font-bold py-4 text-sm"
                     >
                         Logout & Exit
                     </button>

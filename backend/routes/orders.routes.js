@@ -93,7 +93,7 @@ router.get('/active', async (req, res) => {
                 )
             `)
             .eq('restaurant_id', restaurantId)
-            // .neq('status', 'completed') // Removed for now so they can see history even if completed in same session
+            .neq('status', 'completed') // Hide completed (paid) orders from active bill
             .order('created_at', { ascending: false });
 
         // Logic: specific table UUID match OR fuzzy name match

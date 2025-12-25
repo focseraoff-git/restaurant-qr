@@ -151,7 +151,7 @@ export const KitchenDashboard = () => {
                         onClick={() => updateStatus(order.id, NEXT_STATUS[order.status])}
                         className="flex-1 bg-white border border-current px-3 py-1 rounded-lg text-sm font-bold shadow-sm hover:bg-gray-50 uppercase tracking-wide"
                     >
-                        Mark {NEXT_STATUS[order.status]}
+                        Mark {NEXT_STATUS[order.status] === 'completed' ? 'Paid & Clear' : NEXT_STATUS[order.status]}
                     </button>
                 )}
                 {order.status !== 'completed' && order.status !== 'cancelled' && (
