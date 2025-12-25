@@ -97,13 +97,21 @@ export const SuccessPage = () => {
                 </div>
 
                 {/* Estimated Time */}
-                {order?.status !== 'completed' && (
+                {/* Estimated Time & Countdown */}
+                {order?.status === 'preparing' && (
                     <div className="flex items-center justify-between p-5 bg-gradient-to-r from-slate-900 to-slate-800 rounded-2xl border border-white/5 mb-8 shadow-lg">
                         <div className="flex items-center gap-4">
-                            <div className="p-3 bg-white/5 rounded-xl shadow-inner text-2xl border border-white/5">⏱️</div>
+                            <div className="p-3 bg-white/5 rounded-xl shadow-inner text-2xl border border-white/5 animate-pulse">⏱️</div>
                             <div>
                                 <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wide">Estimated Wait</p>
-                                <p className="text-lg font-bold text-white">15-20 Mins</p>
+                                {/* Countdown Logic */}
+                                {order.estimated_prep_time ? (
+                                    <p className="text-2xl font-mono font-bold text-white">
+                                        ~{order.estimated_prep_time} Mins
+                                    </p>
+                                ) : (
+                                    <p className="text-lg font-bold text-white">Preparing...</p>
+                                )}
                             </div>
                         </div>
                     </div>

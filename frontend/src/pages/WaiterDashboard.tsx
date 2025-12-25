@@ -25,7 +25,11 @@ export const WaiterDashboard = () => {
     useEffect(() => {
         const fetchOrders = async () => {
             try {
-                const res = await api.get(`/orders/restaurant/${restaurantId}`);
+                // Sanitize ID in case of malformed URL (e.g. &tableId appended)
+                const cleanId = restaurantId?.split('&')[0].split('?')[0];
+                if (!cleanId) return;
+
+                const res = await api.get(`/orders/restaurant/${cleanId}`);
                 if (res.data) {
                     // Sort by newest first
                     const sorted = res.data.sort((a: Order, b: Order) =>
@@ -76,7 +80,9 @@ export const WaiterDashboard = () => {
         }
     };
 
-    const activeOrders = orders.filter(o => o.status !== 'completed');
+    const [viewHistory, setViewHistory] = useState(false);
+
+    const filteredOrders = orders.filter(o => viewHistory ? o.status === 'completed' : o.status !== 'completed');
 
     return (
         <div className="min-h-screen bg-slate-950 p-4 md:p-6 font-sans relative overflow-hidden">
@@ -93,27 +99,51 @@ export const WaiterDashboard = () => {
                         </h1>
                         <p className="text-gray-400 text-xs md:text-sm mt-1">Real-time order tracking for service staff.</p>
                     </div>
-                    <div className="px-3 py-1.5 md:px-4 md:py-2 bg-white/5 rounded-xl border border-white/5 text-[10px] md:text-xs font-bold text-emerald-400 flex items-center gap-2 animate-pulse self-start md:self-auto">
-                        <span className="w-1.5 h-1.5 md:w-2 md:h-2 bg-emerald-500 rounded-full shadow-[0_0_10px_#10b981]"></span>
-                        LIVE
+                    <div className="flex items-center gap-3 self-end md:self-auto">
+                        {viewHistory && filteredOrders.length > 0 && (
+                            <button
+                                onClick={() => {
+                                    if (confirm('Clear all completed order history?')) {
+                                        setOrders(prev => prev.filter(o => o.status !== 'completed'));
+                                    }
+                                }}
+                                className="px-4 py-2 rounded-xl text-xs font-bold border border-red-500/20 bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-all"
+                            >
+                                🗑️ Clear
+                            </button>
+                        )}
+                        <button
+                            onClick={() => setViewHistory(!viewHistory)}
+                            className={`px-4 py-2 rounded-xl text-xs font-bold border transition-all ${viewHistory
+                                ? 'bg-white/10 text-white border-white/20'
+                                : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-glow-emerald'}`}
+                        >
+                            {viewHistory ? '← Back to Active' : '📜 View History'}
+                        </button>
+                        <div className="px-3 py-1.5 md:px-4 md:py-2 bg-white/5 rounded-xl border border-white/5 text-[10px] md:text-xs font-bold text-emerald-400 flex items-center gap-2 animate-pulse">
+                            <span className="w-1.5 h-1.5 md:w-2 md:h-2 bg-emerald-500 rounded-full shadow-[0_0_10px_#10b981]"></span>
+                            LIVE
+                        </div>
                     </div>
                 </header>
 
                 <div className="space-y-4">
-                    {activeOrders.map(order => (
+                    {filteredOrders.map(order => (
                         <div key={order.id} className={`glass-panel p-5 md:p-6 rounded-2xl border-l-[6px] relative overflow-hidden transition-all active:scale-[0.98] group animate-slide-up
                             ${order.status === 'pending' ? 'border-l-red-500 shadow-[0_0_20px_rgba(239,68,68,0.15)] bg-red-500/5' :
-                                order.status === 'ready' ? 'border-l-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.15)] bg-emerald-500/5' : 'border-l-blue-500 bg-blue-500/5'}
+                                order.status === 'ready' ? 'border-l-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.15)] bg-emerald-500/5' :
+                                    order.status === 'completed' ? 'border-l-gray-600 bg-white/5 opacity-80' : 'border-l-blue-500 bg-blue-500/5'}
                         `}>
                             {/* Card Background Glow */}
                             <div className={`absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-500 pointer-events-none bg-gradient-to-r ${order.status === 'ready' ? 'from-emerald-500/10' : 'from-white/5'} to-transparent`}></div>
 
-                            <div className="flex flex-col md:flex-row justify-between items-start md:items-center relative z-10 gap-4">
+                            <div className="flex flex-col md:flex-row justify-between items-start md:items-center relative z-10 gap-4 mb-4">
                                 <div className="w-full md:w-auto">
                                     <div className="flex items-center gap-2 md:gap-3 mb-2">
                                         <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest border
                                             ${order.status === 'pending' ? 'bg-red-500/20 text-red-400 border-red-500/30' :
-                                                order.status === 'ready' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30 animate-pulse' : 'bg-blue-500/20 text-blue-400 border-blue-500/30'}
+                                                order.status === 'ready' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30 animate-pulse' :
+                                                    order.status === 'completed' ? 'bg-gray-500/20 text-gray-400 border-gray-500/30' : 'bg-blue-500/20 text-blue-400 border-blue-500/30'}
                                         `}>
                                             {order.status}
                                         </span>
@@ -132,8 +162,6 @@ export const WaiterDashboard = () => {
                                     </h2>
                                     <p className="text-gray-400 font-medium text-sm flex items-center gap-2">
                                         👤 {order.customer_name || 'Guest'}
-                                        <span className="w-1 h-1 bg-gray-600 rounded-full"></span>
-                                        {order.order_items.length} Items
                                     </p>
                                 </div>
 
@@ -147,27 +175,38 @@ export const WaiterDashboard = () => {
                                         <span className="md:hidden">→</span>
                                     </button>
                                 )}
+                            </div>
 
-                                {order.status === 'pending' && (
-                                    <div className="w-full md:w-auto text-center md:text-right text-red-400 font-bold text-xs bg-red-500/10 px-4 py-2 rounded-lg border border-red-500/20 animate-pulse">
-                                        ⚠️ KITCHEN<br className="hidden md:inline" /> PENDING
+                            {/* Order Items List */}
+                            <div className="bg-black/20 rounded-xl p-4 border border-white/5 space-y-2">
+                                {order.order_items.map((item: any, idx) => (
+                                    <div key={idx} className="flex justify-between items-center text-sm">
+                                        <div className="flex items-center gap-3">
+                                            <span className="font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded text-xs border border-emerald-500/20">{item.quantity}x</span>
+                                            <span className="text-gray-200 font-medium">{item.menu_items?.name || 'Item'}</span>
+                                        </div>
+                                        {item.portion && item.portion !== 'full' && (
+                                            <span className="text-[10px] text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20 uppercase font-bold tracking-wide">
+                                                {item.portion}
+                                            </span>
+                                        )}
                                     </div>
-                                )}
-
-                                {order.status === 'preparing' && (
-                                    <div className="w-full md:w-auto text-center md:text-right text-blue-400 font-bold text-xs bg-blue-500/10 px-4 py-2 rounded-lg border border-blue-500/20">
-                                        👨‍🍳 CHEFS<br className="hidden md:inline" /> COOKING
-                                    </div>
-                                )}
+                                ))}
                             </div>
                         </div>
                     ))}
 
-                    {activeOrders.length === 0 && (
+                    {filteredOrders.length === 0 && (
                         <div className="text-center py-20 border-2 border-dashed border-white/5 rounded-3xl bg-white/5">
-                            <div className="text-4xl mb-4 grayscale opacity-50">☕</div>
-                            <p className="text-xl font-display font-bold text-gray-500">All caught up!</p>
-                            <p className="text-sm text-gray-600">No active orders needing attention.</p>
+                            <div className="text-4xl mb-4 grayscale opacity-50">
+                                {viewHistory ? '📜' : '☕'}
+                            </div>
+                            <p className="text-xl font-display font-bold text-gray-500">
+                                {viewHistory ? 'No order history yet' : 'All caught up!'}
+                            </p>
+                            <p className="text-sm text-gray-600">
+                                {viewHistory ? 'Completed orders will appear here.' : 'No active orders needing attention.'}
+                            </p>
                         </div>
                     )}
                 </div>

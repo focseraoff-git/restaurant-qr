@@ -169,11 +169,16 @@ router.get('/restaurant/:restaurantId', async (req, res) => {
 
 // Update Order Status
 router.put('/:id/status', async (req, res) => {
-    const { status } = req.body;
+    const { status, estimated_prep_time } = req.body;
     try {
+        const updateData = { status };
+        if (estimated_prep_time) {
+            updateData.estimated_prep_time = estimated_prep_time;
+        }
+
         const { data, error } = await supabase
             .from('orders')
-            .update({ status })
+            .update(updateData)
             .eq('id', req.params.id)
             .select()
             .single();

@@ -141,11 +141,17 @@ export const KitchenDashboard = () => {
         return () => clearInterval(interval);
     }, [restaurantId]);
 
-    const updateStatus = async (orderId: string, newStatus: string) => {
+    const updateStatus = async (orderId: string, newStatus: string, estimatedTime?: number) => {
         try {
             // Optimistic update
             setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
-            await api.put(`/orders/${orderId}/status`, { status: newStatus });
+
+            const payload: any = { status: newStatus };
+            if (newStatus === 'preparing' && estimatedTime) {
+                payload.estimated_prep_time = estimatedTime;
+            }
+
+            await api.put(`/orders/${orderId}/status`, payload);
             // Re-fetch to confirm
             fetchOrders();
         } catch (error) {
@@ -180,6 +186,25 @@ export const KitchenDashboard = () => {
         }
     };
 
+    const [timerModal, setTimerModal] = useState<{ isOpen: boolean; orderId: string | null }>({
+        isOpen: false,
+        orderId: null
+    });
+    const [estimatedTime, setEstimatedTime] = useState(15);
+
+    const openTimerModal = (orderId: string) => {
+        setTimerModal({ isOpen: true, orderId });
+        setEstimatedTime(15);
+    };
+
+    const confirmTimer = () => {
+        if (timerModal.orderId) {
+            updateStatus(timerModal.orderId, 'preparing', estimatedTime);
+            setTimerModal({ isOpen: false, orderId: null });
+        }
+    };
+
+    // ... items handlers ...
     const handleUpdateItem = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!editingItem) return;
@@ -277,7 +302,13 @@ export const KitchenDashboard = () => {
             <div className="flex gap-2 mt-3">
                 {NEXT_STATUS[order.status] && (
                     <button
-                        onClick={() => updateStatus(order.id, NEXT_STATUS[order.status])}
+                        onClick={() => {
+                            if (NEXT_STATUS[order.status] === 'preparing') {
+                                openTimerModal(order.id);
+                            } else {
+                                updateStatus(order.id, NEXT_STATUS[order.status]);
+                            }
+                        }}
                         className={`flex-1 border px-3 py-2 rounded-xl text-sm font-bold shadow-lg uppercase tracking-wide transition-all transform active:scale-95
                             ${NEXT_STATUS[order.status] === 'completed'
                                 ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white border-transparent hover:shadow-emerald-500/20'
@@ -594,6 +625,45 @@ export const KitchenDashboard = () => {
                     </div>
                 </div>
             )}
+
+            {/* Timer Modal */}
+            <Modal
+                isOpen={timerModal.isOpen}
+                onClose={() => setTimerModal({ isOpen: false, orderId: null })}
+                title="⏱️ Set Estimated Time"
+            >
+                <div className="space-y-6">
+                    <p className="text-gray-300">How long will this order take to prepare?</p>
+                    <div className="grid grid-cols-3 gap-3">
+                        {[15, 30, 45].map(time => (
+                            <button
+                                key={time}
+                                onClick={() => setEstimatedTime(time)}
+                                className={`py-4 rounded-xl border font-bold text-lg transition-all ${estimatedTime === time
+                                    ? 'bg-emerald-500 text-white border-emerald-500 shadow-glow-emerald'
+                                    : 'bg-white/5 text-gray-400 border-white/10 hover:bg-white/10'}`}
+                            >
+                                {time}m
+                            </button>
+                        ))}
+                    </div>
+                    <div className="relative">
+                        <label className="text-xs text-gray-500 uppercase font-bold mb-1 block">Custom (Minutes)</label>
+                        <input
+                            type="number"
+                            value={estimatedTime}
+                            onChange={(e) => setEstimatedTime(parseInt(e.target.value) || 0)}
+                            className="input-field w-full text-center text-2xl font-mono"
+                        />
+                    </div>
+                    <button
+                        onClick={confirmTimer}
+                        className="w-full btn-primary py-4 rounded-xl font-bold text-white shadow-lg flex items-center justify-center gap-2"
+                    >
+                        <span>Start Timer</span> →
+                    </button>
+                </div>
+            </Modal>
         </div>
     );
 };

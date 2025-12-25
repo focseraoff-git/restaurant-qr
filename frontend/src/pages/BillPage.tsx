@@ -19,6 +19,7 @@ interface Order {
     total_amount: number;
     created_at: string;
     order_items: OrderItem[];
+    estimated_prep_time?: number;
 }
 
 export const BillPage = () => {
@@ -158,6 +159,13 @@ export const BillPage = () => {
                             <>
                                 <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-6 border-b border-white/5 pb-2">Current Orders</h3>
                                 <OrderList listOrders={activeOrders} />
+                                {/* Global Timer for 'Preparing' Orders */}
+                                {activeOrders.some(o => o.status === 'preparing' && o.estimated_prep_time) && (
+                                    <div className="mt-4 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center justify-between">
+                                        <span className="text-emerald-400 font-bold text-xs uppercase tracking-wider">Estimated Wait</span>
+                                        <span className="text-white font-mono font-bold">~{Math.max(...activeOrders.map(o => o.estimated_prep_time || 0))} Mins</span>
+                                    </div>
+                                )}
                             </>
                         )}
                     </div>
