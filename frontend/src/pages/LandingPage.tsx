@@ -148,26 +148,19 @@ export const LandingPage = () => {
                         </div>
 
                         <div className="grid gap-4">
-                            {tableNumber && (
-                                <button
-                                    onClick={() => handleOrderType('dine-in')}
-                                    className="relative group p-6 rounded-3xl bg-white border-2 border-primary-100 hover:border-primary-500 transition-all text-left shadow-sm hover:shadow-primary-hover"
-                                >
-                                    <div className="flex items-start justify-between mb-2">
-                                        <div className="p-3 bg-primary-50 text-2xl rounded-2xl group-hover:bg-primary-500 group-hover:text-white transition-colors">🍲</div>
+                            <button
+                                onClick={() => handleOrderType('dine-in')}
+                                className="relative group p-6 rounded-3xl bg-white border-2 border-primary-100 hover:border-primary-500 transition-all text-left shadow-sm hover:shadow-primary-hover"
+                            >
+                                <div className="flex items-start justify-between mb-2">
+                                    <div className="p-3 bg-primary-50 text-2xl rounded-2xl group-hover:bg-primary-500 group-hover:text-white transition-colors">🍲</div>
+                                    {tableNumber && (
                                         <div className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold">Table {tableNumber}</div>
-                                    </div>
-                                    <h3 className="text-xl font-bold text-gray-900">Dine In</h3>
-                                    <p className="text-sm text-gray-500 mt-1">Order and enjoy your meal at your table.</p>
-                                </button>
-                            )}
-
-                            {/* If table is not detected, maybe show Dine In but ask for table? Or just fallback. Assuming Table ID is always present for Dine In flow per user instruction */}
-                            {!tableNumber && (
-                                <div className="p-4 bg-yellow-50 text-yellow-800 rounded-xl text-center text-sm">
-                                    Scanning a general QR? Please ask staff for a table or choose Takeaway.
+                                    )}
                                 </div>
-                            )}
+                                <h3 className="text-xl font-bold text-gray-900">Dine In</h3>
+                                <p className="text-sm text-gray-500 mt-1">Order and enjoy your meal at the restaurant.</p>
+                            </button>
 
                             <button
                                 onClick={() => handleOrderType('takeaway')}
