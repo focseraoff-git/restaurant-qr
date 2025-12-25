@@ -168,11 +168,11 @@ router.get('/active', async (req, res) => {
         } else {
             // Manual Table or No Table Logic
             // We search for exact "John" OR "John (Table 5)"
-            let nameFilters = `customer_name.eq.${customerName}`;
+            const namesToCheck = [customerName];
             if (tableNumber) {
-                nameFilters += `,customer_name.eq.${customerName} (Table ${tableNumber})`;
+                namesToCheck.push(`${customerName} (Table ${tableNumber})`);
             }
-            query = query.or(nameFilters);
+            query = query.in('customer_name', namesToCheck);
         }
 
         const { data, error } = await query;
