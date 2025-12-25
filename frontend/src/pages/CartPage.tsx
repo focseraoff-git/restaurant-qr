@@ -4,7 +4,7 @@ import api from '../utils/api';
 import { useState } from 'react';
 
 export const CartPage = () => {
-    const { cart, removeFromCart, updateQuantity, restaurantId, tableId, clearCart, customerName, orderType } = useStore();
+    const { cart, updateQuantity, restaurantId, tableId, clearCart, customerName, orderType } = useStore();
     const navigate = useNavigate();
     const [submitting, setSubmitting] = useState(false);
 
