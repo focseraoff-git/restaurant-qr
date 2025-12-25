@@ -28,7 +28,7 @@ export const WaiterLoginPage = () => {
 
         try {
             // 1. Auth Login
-            const { data, error } = await supabase.auth.signInWithPassword({
+            const { error } = await supabase.auth.signInWithPassword({
                 email,
                 password
             });

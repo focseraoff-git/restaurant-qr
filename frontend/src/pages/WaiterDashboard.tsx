@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import { supabase } from '../utils/supabaseClient';
@@ -45,7 +45,7 @@ export const WaiterDashboard = () => {
     const [stats, setStats] = useState({ count: 0, total: 0 });
     const [error, setError] = useState<string | null>(null);
 
-    const audioRef = useRef<HTMLAudioElement | null>(null);
+    // const audioRef = useRef<HTMLAudioElement | null>(null);
 
     // 1. Get Current Waiter Profile
     useEffect(() => {
