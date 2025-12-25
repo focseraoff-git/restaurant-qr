@@ -84,11 +84,16 @@ export const MenuPage = () => {
 
     return (
         <div className="pb-24 pt-4">
-            <header className="mb-8 px-2">
-                <h2 className="text-3xl font-display font-bold text-gray-900 leading-tight">
-                    Our <span className="text-primary-600">Menu</span>
-                </h2>
-                <p className="text-gray-500 mt-1">Authentic flavors, crafted with love.</p>
+            <header className="mb-8 px-2 flex justify-between items-end">
+                <div>
+                    <h2 className="text-3xl font-display font-bold text-gray-900 leading-tight">
+                        Our <span className="text-primary-600">Menu</span>
+                    </h2>
+                    <p className="text-gray-500 mt-1">Authentic flavors, crafted with love.</p>
+                </div>
+                <button onClick={() => window.location.href = '/bill'} className="text-xs font-bold text-primary-600 bg-primary-50 px-3 py-1 rounded-full">
+                    View Bill
+                </button>
             </header>
 
             {categories.map(cat => (

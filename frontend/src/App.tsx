@@ -5,6 +5,7 @@ import { CartPage } from './pages/CartPage';
 import { KitchenDashboard } from './pages/KitchenDashboard';
 import { LandingPage } from './pages/LandingPage';
 import { SuccessPage } from './pages/SuccessPage';
+import { BillPage } from './pages/BillPage';
 
 import { WaiterDashboard } from './pages/WaiterDashboard';
 import { Protect } from './components/Protect';
@@ -19,6 +20,7 @@ function App() {
           <Route path="/menu" element={<MenuPage />} />
           <Route path="/cart" element={<CartPage />} />
           <Route path="/success" element={<SuccessPage />} />
+          <Route path="/bill" element={<BillPage />} />
         </Route>
 
         <Route path="/kitchen/:restaurantId" element={<Protect><KitchenDashboard /></Protect>} />

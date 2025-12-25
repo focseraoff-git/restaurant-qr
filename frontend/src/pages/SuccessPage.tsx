@@ -92,6 +92,9 @@ export const SuccessPage = () => {
                     <button onClick={() => navigate('/menu')} className="w-full text-gray-500 py-3 font-medium hover:text-gray-900">
                         Order More Items
                     </button>
+                    <button onClick={() => navigate('/bill')} className="w-full text-primary-600 font-bold py-2 hover:underline">
+                        View Full Bill
+                    </button>
                 </div>
             </div>
         </div>

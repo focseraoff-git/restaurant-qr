@@ -140,4 +140,41 @@ router.put('/:id/status', async (req, res) => {
     }
 });
 
+// Get Active Orders (Bill/History)
+router.get('/active', async (req, res) => {
+    const { restaurantId, customerName, tableId } = req.query;
+
+    if (!restaurantId || !customerName) {
+        return res.status(400).json({ error: 'Missing required parameters' });
+    }
+
+    try {
+        let query = supabase
+            .from('orders')
+            .select(`
+                *,
+                order_items (
+                    *,
+                    menu_items (name, price_full, price_half)
+                )
+            `)
+            .eq('restaurant_id', restaurantId)
+            .eq('customer_name', customerName)
+            .neq('status', 'completed') // Only show active/pending/served, not closed history (optional)
+            .order('created_at', { ascending: false });
+
+        if (tableId && tableId !== 'null' && tableId !== 'undefined') {
+            // Optional: strict table matching if provided
+            // query = query.eq('table_id', tableId);
+        }
+
+        const { data, error } = await query;
+
+        if (error) throw error;
+        res.json(data);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 module.exports = router;
