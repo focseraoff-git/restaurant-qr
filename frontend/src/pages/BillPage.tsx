@@ -22,19 +22,33 @@ interface Order {
 }
 
 export const BillPage = () => {
-    const { restaurantId, customerName, tableNumber, clearCart, setCustomerName } = useStore();
+    const { restaurantId, customerName, tableNumber, resetStore } = useStore();
     const navigate = useNavigate();
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
 
+    const fetchOrders = () => {
+        setLoading(true);
+        // Construct Name Logic (Must match CartPage.tsx)
+        const namesToCheck = [customerName];
+        if (tableNumber) {
+            namesToCheck.push(`${customerName} (Table ${tableNumber})`);
+        }
+
+        api.get(`/orders/active`, {
+            params: { restaurantId, customerName, tableNumber }
+        })
+            .then(res => setOrders(res.data))
+            .catch(console.error)
+            .finally(() => setLoading(false));
+    };
+
     useEffect(() => {
         if (restaurantId && customerName) {
-            api.get(`/orders/active`, {
-                params: { restaurantId, customerName, tableNumber }
-            })
-                .then(res => setOrders(res.data))
-                .catch(console.error)
-                .finally(() => setLoading(false));
+            fetchOrders();
+            // Auto-refresh every 10 seconds to keep bill updated
+            const interval = setInterval(fetchOrders, 10000);
+            return () => clearInterval(interval);
         } else {
             setLoading(false);
         }
@@ -44,8 +58,7 @@ export const BillPage = () => {
 
     const handleLogout = () => {
         if (confirm('Are you sure you want to logout? This will clear your session.')) {
-            setCustomerName('');
-            clearCart();
+            resetStore(); // Fully clear state including restaurantId
             navigate('/');
         }
     };
@@ -59,7 +72,9 @@ export const BillPage = () => {
                     &larr; Menu
                 </button>
                 <h1 className="font-bold text-lg">Your Table Bill</h1>
-                <div className="w-16"></div> {/* Spacer */}
+                <button onClick={fetchOrders} className="text-primary-600 text-sm font-bold">
+                    🔄 Refresh
+                </button>
             </header>
 
             <div className="p-6 max-w-md mx-auto">

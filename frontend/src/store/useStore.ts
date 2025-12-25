@@ -27,6 +27,7 @@ interface AppState {
     removeFromCart: (itemId: string, portion: string) => void;
     updateQuantity: (itemId: string, portion: string, delta: number) => void;
     clearCart: () => void;
+    resetStore: () => void;
 }
 
 export const useStore = create<AppState>()(
@@ -71,6 +72,15 @@ export const useStore = create<AppState>()(
             })),
 
             clearCart: () => set({ cart: [] }),
+            resetStore: () => set({
+                cart: [],
+                customerName: null,
+                tableId: null,
+                tableNumber: null,
+                orderType: null,
+                restaurantId: null // Clear this to force scanner if desired, or keep it?
+                // Request says "take to scanner page". So we MUST clear restaurantId.
+            }),
         }),
         {
             name: 'restaurant-qr-storage',
