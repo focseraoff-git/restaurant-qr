@@ -2,16 +2,25 @@ import { useStore } from '../store/useStore';
 import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import { useState } from 'react';
+import { Toast } from '../components/Toast';
 
 export const CartPage = () => {
     const { cart, updateQuantity, restaurantId, tableId, clearCart, customerName, orderType } = useStore();
     const navigate = useNavigate();
     const [submitting, setSubmitting] = useState(false);
+    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
+
+    const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
+        setToast({ message, type });
+    };
 
     const total = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
 
     const placeOrder = async () => {
-        if (!restaurantId) return alert('Restaurant ID missing');
+        if (!restaurantId) {
+            showToast('Restaurant ID missing', 'error');
+            return;
+        }
         setSubmitting(true);
 
         try {
@@ -47,7 +56,7 @@ export const CartPage = () => {
             navigate(`/success?orderId=${res.data.order.id}`);
         } catch (err) {
             console.error(err);
-            alert('Failed to place order');
+            showToast('Failed to place order. Please try again.', 'error');
         } finally {
             setSubmitting(false);
         }
@@ -164,6 +173,8 @@ export const CartPage = () => {
                     )}
                 </button>
             </div>
+
+            {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
         </div>
     );
 };

@@ -119,4 +119,45 @@ router.get('/:restaurantId/stats', async (req, res) => {
     }
 });
 
+// Update Waiter
+router.put('/:id', async (req, res) => {
+    const { name, email, password } = req.body;
+    try {
+        const { data: waiter } = await supabase.from('waiters').select('auth_id').eq('id', req.params.id).single();
+
+        const updateData = {};
+        if (name) updateData.name = name;
+        if (email) updateData.email = email;
+
+        const { data, error: dbError } = await supabase
+            .from('waiters')
+            .update(updateData)
+            .eq('id', req.params.id)
+            .select()
+            .single();
+
+        if (dbError) throw dbError;
+
+        // Update Auth User if email or password changed
+        if (waiter && waiter.auth_id) {
+            const authUpdate = {};
+            if (email) authUpdate.email = email;
+            if (password) authUpdate.password = password;
+
+            if (Object.keys(authUpdate).length > 0) {
+                const { error: authError } = await supabase.auth.admin.updateUserById(
+                    waiter.auth_id,
+                    authUpdate
+                );
+                if (authError) throw authError;
+            }
+        }
+
+        res.json(data);
+    } catch (error) {
+        console.error('Update Waiter Error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 module.exports = router;

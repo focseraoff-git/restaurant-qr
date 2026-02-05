@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import { supabase } from '../utils/supabaseClient';
+import { Toast } from '../components/Toast';
+import { Modal } from '../components/Modal';
 
 interface Order {
     id: string;
@@ -57,6 +59,25 @@ export const WaiterDashboard = () => {
     const [allOrders, setAllOrders] = useState<Order[]>([]);
     const [reportPeriod, setReportPeriod] = useState<'daily' | 'monthly' | 'yearly'>('daily');
     const [loadingReports, setLoadingReports] = useState(false);
+
+    // Toast and Confirm State
+    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
+    const [confirmAction, setConfirmAction] = useState<{
+        isOpen: boolean;
+        title: string;
+        message: string;
+        onConfirm: () => void;
+        type?: 'danger' | 'info';
+    }>({
+        isOpen: false,
+        title: '',
+        message: '',
+        onConfirm: () => { },
+    });
+
+    const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
+        setToast({ message, type });
+    };
 
     // const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -281,17 +302,34 @@ export const WaiterDashboard = () => {
     };
 
     const markDelivered = async (orderId: string) => {
-        if (!window.confirm("Confirm delivery?")) return;
-        try {
-            await api.put(`/orders/${orderId}/status`, { status: 'completed' });
-            fetchOrders();
-        } catch (error) { console.error(error); }
+        setConfirmAction({
+            isOpen: true,
+            title: "Confirm Delivery",
+            message: "Are you sure this order has been successfully delivered?",
+            type: 'info',
+            onConfirm: async () => {
+                try {
+                    await api.put(`/orders/${orderId}/status`, { status: 'completed' });
+                    fetchOrders();
+                    showToast("Order Delivered!", "success");
+                } catch (error) {
+                    console.error(error);
+                    showToast("Failed to mark delivered", "error");
+                }
+            }
+        });
     };
 
     const clearHistory = () => {
-        if (window.confirm("Clear your local history view?")) {
-            setOrders([]); // Clear local state only
-        }
+        setConfirmAction({
+            isOpen: true,
+            title: "Clear History",
+            message: "This will clear your local history view only. Permanent records remain safe.",
+            onConfirm: () => {
+                setOrders([]);
+                showToast("Local History Cleared", "info");
+            }
+        });
     };
 
     // Menu Tab Handlers
@@ -313,12 +351,12 @@ export const WaiterDashboard = () => {
     const placeWaiterOrder = async () => {
         // Validate based on order type
         if (!waiterProfile || selectedItems.length === 0) {
-            alert('Please select items');
+            showToast('Please select items', 'error');
             return;
         }
 
         if (orderType === 'dine-in' && !tableNumber) {
-            alert('Please specify table number for dine-in orders');
+            showToast('Please specify table number for dine-in orders', 'error');
             return;
         }
 
@@ -355,12 +393,11 @@ export const WaiterDashboard = () => {
             setTableNumber('');
             setCustomerName('');
             setOrderType('dine-in');
-            alert('Order placed successfully! Order ID: ' + response.data.order.id.slice(0, 8));
+            showToast('Order placed successfully!', 'success');
             fetchOrders(); // Refresh orders
         } catch (error: any) {
             console.error('Place order error:', error);
-            console.error('Error response:', error.response?.data);
-            alert('Failed to place order: ' + (error.response?.data?.error || error.message));
+            showToast('Failed to place order', 'error');
         }
     };
 
@@ -1199,6 +1236,37 @@ export const WaiterDashboard = () => {
                 )}
 
             </div>
+            {/* Confirmation Modal */}
+            <Modal isOpen={confirmAction.isOpen} onClose={() => setConfirmAction({ ...confirmAction, isOpen: false })} title={confirmAction.title}>
+                <div className="text-center">
+                    <div className={`w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-6 border ${confirmAction.type === 'danger' ? 'bg-red-500/10 border-red-500/20 text-red-500' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500'}`}>
+                        {confirmAction.type === 'danger' ? (
+                            <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        ) : (
+                            <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        )}
+                    </div>
+                    <p className="text-gray-300 text-lg mb-8 leading-relaxed">
+                        {confirmAction.message}
+                    </p>
+                    <div className="flex gap-4">
+                        <button
+                            onClick={() => setConfirmAction({ ...confirmAction, isOpen: false })}
+                            className="flex-1 px-6 py-4 rounded-2xl bg-white/5 text-gray-400 font-bold hover:bg-white/10 transition-all border border-white/10"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            onClick={() => { confirmAction.onConfirm(); setConfirmAction({ ...confirmAction, isOpen: false }); }}
+                            className={`flex-1 px-6 py-4 rounded-2xl font-bold text-white shadow-lg transition-all transform active:scale-95 ${confirmAction.type === 'danger' ? 'bg-gradient-to-r from-red-600 to-rose-600 shadow-red-500/20 hover:shadow-red-500/40' : 'bg-gradient-to-r from-emerald-600 to-teal-600 shadow-emerald-500/20 hover:shadow-emerald-500/40'}`}
+                        >
+                            Confirm
+                        </button>
+                    </div>
+                </div>
+            </Modal>
+
+            {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
         </div>
     );
 };

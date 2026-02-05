@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import api from '../utils/api';
 import { Toast } from '../components/Toast';
+import { Modal } from '../components/Modal';
 
 // Interfaces
 interface OrderItem {
@@ -46,21 +47,37 @@ const NEXT_STATUS: Record<string, string> = {
     ready: 'completed'
 };
 
-// Modal Component
-const Modal = ({ isOpen, onClose, title, children }: any) => {
-    if (!isOpen) return null;
+// ConfirmModal Component
+const ConfirmModal = ({ isOpen, onClose, onConfirm, title, message, type = 'danger' }: any) => {
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
-            <div className="glass-panel w-full max-w-md overflow-hidden animate-slide-up rounded-3xl border border-white/10">
-                <div className="px-6 py-5 border-b border-white/10 flex justify-between items-center bg-white/5">
-                    <h3 className="font-display font-bold text-xl text-white">{title}</h3>
-                    <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors text-2xl">×</button>
+        <Modal isOpen={isOpen} onClose={onClose} title={title}>
+            <div className="text-center">
+                <div className={`w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-6 border ${type === 'danger' ? 'bg-red-500/10 border-red-500/20 text-red-500' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500'}`}>
+                    {type === 'danger' ? (
+                        <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    ) : (
+                        <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    )}
                 </div>
-                <div className="p-6">
-                    {children}
+                <p className="text-gray-300 text-lg mb-8 leading-relaxed">
+                    {message}
+                </p>
+                <div className="flex gap-4">
+                    <button
+                        onClick={onClose}
+                        className="flex-1 px-6 py-4 rounded-2xl bg-white/5 text-gray-400 font-bold hover:bg-white/10 transition-all border border-white/10"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        onClick={() => { onConfirm(); onClose(); }}
+                        className={`flex-1 px-6 py-4 rounded-2xl font-bold text-white shadow-lg transition-all transform active:scale-95 ${type === 'danger' ? 'bg-gradient-to-r from-red-600 to-rose-600 shadow-red-500/20 hover:shadow-red-500/40' : 'bg-gradient-to-r from-emerald-600 to-teal-600 shadow-emerald-500/20 hover:shadow-emerald-500/40'}`}
+                    >
+                        Confirm
+                    </button>
                 </div>
             </div>
-        </div>
+        </Modal>
     );
 };
 
@@ -70,6 +87,7 @@ export const KitchenDashboard = () => {
     // Orders State
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
+    const [backgroundSyncing, setBackgroundSyncing] = useState(false);
     const [lastCount, setLastCount] = useState(0);
     const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -78,24 +96,32 @@ export const KitchenDashboard = () => {
     const [menuCategories, setMenuCategories] = useState<any[]>([]);
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
 
-    // Manager Tabs
-    const [activeTab, setActiveTab] = useState<'menu' | 'waiters' | 'settlement' | 'payments' | 'info'>('menu');
-    const [waiters, setWaiters] = useState<any[]>([]);
-    const [stats, setStats] = useState<any>(null);
-    const [isAddWaiterOpen, setIsAddWaiterOpen] = useState(false);
-    const [newWaiter, setNewWaiter] = useState({ name: '', email: '', password: '' });
-
-    // Financial Reports State
-    const [allCompletedOrders, setAllCompletedOrders] = useState<Order[]>([]);
-    const [reportPeriod, setReportPeriod] = useState<'daily' | 'monthly' | 'yearly'>('daily');
-
-    // Info Tab State
-    const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+    // Manager Tabs - Simplified to menu only
+    const [activeTab, setActiveTab] = useState<'menu'>('menu');
 
     // Modal & Form State
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<any | null>(null);
     const [newItem, setNewItem] = useState({ name: '', price: '', description: '', is_veg: true, category_id: '' });
+
+    // Category Management State
+    const [isAddCategoryOpen, setIsAddCategoryOpen] = useState(false);
+    const [editingCategory, setEditingCategory] = useState<any | null>(null);
+    const [newCategoryName, setNewCategoryName] = useState('');
+
+    // Confirmation State
+    const [confirmAction, setConfirmAction] = useState<{
+        isOpen: boolean;
+        title: string;
+        message: string;
+        onConfirm: () => void;
+        type?: 'danger' | 'info';
+    }>({
+        isOpen: false,
+        title: '',
+        message: '',
+        onConfirm: () => { },
+    });
 
     // Request notification permission on mount
     useEffect(() => {
@@ -106,6 +132,7 @@ export const KitchenDashboard = () => {
 
     const fetchOrders = async () => {
         if (!restaurantId) return;
+        setBackgroundSyncing(true);
         try {
             // Sanitize ID in case query params got appended to the URL path
             const cleanId = restaurantId.split('&')[0];
@@ -114,11 +141,15 @@ export const KitchenDashboard = () => {
             setLoading(false);
         } catch (error) {
             console.error('Error fetching orders:', error);
+            setLoading(false);
+        } finally {
+            setBackgroundSyncing(false);
         }
     };
 
     const fetchMenu = async () => {
         if (!restaurantId) return;
+        setBackgroundSyncing(true);
         try {
             const cleanId = restaurantId.split('&')[0];
             const res = await api.get(`/menu/${cleanId}`);
@@ -129,6 +160,8 @@ export const KitchenDashboard = () => {
             }
         } catch (error) {
             console.error('Error fetching menu:', error);
+        } finally {
+            setBackgroundSyncing(false);
         }
     };
 
@@ -152,107 +185,11 @@ export const KitchenDashboard = () => {
     useEffect(() => {
         fetchOrders();
         fetchMenu();
-        if (isManagerMode && activeTab === 'waiters') fetchWaiters();
-        if (isManagerMode && (activeTab === 'settlement' || activeTab === 'info')) {
-            fetchStats();
-            fetchAllCompletedOrders();
-        }
 
         const interval = setInterval(fetchOrders, 5000);
         return () => clearInterval(interval);
-    }, [restaurantId, isManagerMode, activeTab]);
+    }, [restaurantId]);
 
-    const fetchWaiters = async () => {
-        if (!restaurantId) return;
-        try {
-            const cleanId = restaurantId.split('&')[0];
-            const res = await api.get(`/waiters/${cleanId}`);
-            setWaiters(res.data);
-        } catch (error) { console.error(error); }
-    };
-
-    const fetchStats = async () => {
-        if (!restaurantId) return;
-        try {
-            const cleanId = restaurantId.split('&')[0];
-            const res = await api.get(`/waiters/${cleanId}/stats`);
-            setStats(res.data);
-        } catch (error) { console.error(error); }
-    };
-
-    const fetchAllCompletedOrders = async () => {
-        if (!restaurantId) return;
-        try {
-            const cleanId = restaurantId.split('&')[0];
-            const res = await api.get(`/orders/restaurant/${cleanId}`);
-            const completedOrders = res.data.filter((o: Order) => o.status === 'completed');
-            console.log('📊 All Orders:', res.data.length);
-            console.log('✅ Completed Orders:', completedOrders.length);
-            console.log('🔍 Sample Order:', completedOrders[0]);
-            setAllCompletedOrders(completedOrders);
-        } catch (error) {
-            console.error('❌ Error fetching orders:', error);
-        }
-    };
-
-    const generateFinancialReport = () => {
-        const now = new Date();
-        const today = now.toISOString().split('T')[0];
-        const thisMonth = now.toISOString().slice(0, 7);
-        const thisYear = now.getFullYear().toString();
-
-        const dailyOrders = allCompletedOrders.filter(o => o.created_at.slice(0, 10) === today);
-        const monthlyOrders = allCompletedOrders.filter(o => o.created_at.slice(0, 7) === thisMonth);
-        const yearlyOrders = allCompletedOrders.filter(o => o.created_at.slice(0, 4) === thisYear);
-
-        const calculateTotals = (orders: Order[]) => {
-            const total = orders.reduce((sum, o) => sum + o.total_amount, 0);
-            const cash = orders.filter(o => o.payment_method === 'cash').reduce((sum, o) => sum + o.total_amount, 0);
-            const online = orders.filter(o => o.payment_method === 'online').reduce((sum, o) => sum + o.total_amount, 0);
-            const upi = orders.filter(o => o.payment_method === 'upi').reduce((sum, o) => sum + o.total_amount, 0);
-            const onlineTotal = online + upi;
-
-            return {
-                total,
-                count: orders.length,
-                cash,
-                cashCount: orders.filter(o => o.payment_method === 'cash').length,
-                online: onlineTotal,
-                onlineCount: orders.filter(o => o.payment_method === 'online' || o.payment_method === 'upi').length,
-                cashPercent: total > 0 ? ((cash / total) * 100).toFixed(1) : 0,
-                onlinePercent: total > 0 ? ((onlineTotal / total) * 100).toFixed(1) : 0
-            };
-        };
-
-        return {
-            daily: calculateTotals(dailyOrders),
-            monthly: calculateTotals(monthlyOrders),
-            yearly: calculateTotals(yearlyOrders)
-        };
-    };
-
-    const handleCreateWaiter = async (e: React.FormEvent) => {
-        e.preventDefault();
-        try {
-            const cleanId = restaurantId?.split('&')[0];
-            await api.post('/waiters/create', { ...newWaiter, restaurantId: cleanId });
-            setNewWaiter({ name: '', email: '', password: '' });
-            setIsAddWaiterOpen(false);
-            showToast('Waiter Added Successfully!', 'success');
-            fetchWaiters();
-        } catch (error: any) {
-            showToast(error.response?.data?.error || 'Failed to create waiter', 'error');
-        }
-    };
-
-    const handleDeleteWaiter = async (id: string) => {
-        if (!window.confirm('Delete this waiter?')) return;
-        try {
-            await api.delete(`/waiters/${id}`);
-            showToast('Waiter Removed', 'success');
-            fetchWaiters();
-        } catch (error) { showToast('Failed to delete', 'error'); }
-    };
 
     const updateStatus = async (orderId: string, newStatus: string, estimatedTime?: number) => {
         try {
@@ -271,6 +208,24 @@ export const KitchenDashboard = () => {
             console.error('Error updating status:', error);
             fetchOrders(); // Revert on error
         }
+    };
+
+    const handleDeleteOrder = async (orderId: string) => {
+        setConfirmAction({
+            isOpen: true,
+            title: "Delete History",
+            message: "Are you sure you want to permanently delete this order history? This cannot be undone.",
+            onConfirm: async () => {
+                try {
+                    await api.delete(`/orders/${orderId}`);
+                    setOrders(prev => prev.filter(o => o.id !== orderId));
+                    showToast("Order History Deleted", "success");
+                } catch (error) {
+                    console.error('Error deleting order:', error);
+                    showToast("Failed to delete order", "error");
+                }
+            }
+        });
     };
 
     const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
@@ -337,6 +292,57 @@ export const KitchenDashboard = () => {
         }
     };
 
+    const handleCreateCategory = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!newCategoryName) return;
+        try {
+            await api.post('/menu/categories', {
+                restaurant_id: restaurantId?.split('&')[0],
+                name: newCategoryName,
+                sort_order: menuCategories.length
+            });
+            setNewCategoryName('');
+            setIsAddCategoryOpen(false);
+            fetchMenu();
+            showToast("Category Created! 📁", "success");
+        } catch (error) {
+            showToast("Failed to create category", "error");
+        }
+    };
+
+    const handleUpdateCategory = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingCategory) return;
+        try {
+            await api.put(`/menu/categories/${editingCategory.id}`, {
+                name: editingCategory.name,
+                sort_order: editingCategory.sort_order
+            });
+            setEditingCategory(null);
+            fetchMenu();
+            showToast("Category Updated!", "success");
+        } catch (error) {
+            showToast("Failed to update category", "error");
+        }
+    };
+
+    const handleDeleteCategory = async (id: string) => {
+        setConfirmAction({
+            isOpen: true,
+            title: "Delete Category",
+            message: "Delete this category and all its items? This action is permanent.",
+            onConfirm: async () => {
+                try {
+                    await api.delete(`/menu/categories/${id}`);
+                    fetchMenu();
+                    showToast("Category Deleted", "success");
+                } catch (error) {
+                    showToast("Failed to delete category", "error");
+                }
+            }
+        });
+    };
+
     const [deleteConfirmation, setDeleteConfirmation] = useState<{ isOpen: boolean; itemId: string | null }>({
         isOpen: false,
         itemId: null
@@ -350,16 +356,22 @@ export const KitchenDashboard = () => {
         if (!deleteConfirmation.itemId) return;
 
         const itemId = deleteConfirmation.itemId;
+        setConfirmAction({
+            isOpen: true,
+            title: "Delete Recipe",
+            message: "Are you sure you want to delete this recipe from the menu?",
+            onConfirm: async () => {
+                try {
+                    await api.delete(`/menu/${itemId}`);
+                    fetchMenu();
+                    showToast("Recipe Removed Successfully", "success");
+                } catch (error: any) {
+                    const msg = error.response?.data?.error || error.message || "Failed to delete item.";
+                    showToast(msg, "error");
+                }
+            }
+        });
         setDeleteConfirmation({ isOpen: false, itemId: null });
-
-        try {
-            await api.delete(`/menu/${itemId}`);
-            fetchMenu();
-            showToast("Recipe Removed Successfully", "success");
-        } catch (error: any) {
-            const msg = error.response?.data?.error || error.message || "Failed to delete item.";
-            showToast(msg, "error");
-        }
     };
 
     // Kept for compatibility if called elsewhere, but we switch the UI to call confirmDelete
@@ -430,13 +442,13 @@ export const KitchenDashboard = () => {
                         Mark {NEXT_STATUS[order.status] === 'completed' ? 'Paid & Clear' : NEXT_STATUS[order.status]}
                     </button>
                 )}
-                {order.status !== 'completed' && order.status !== 'cancelled' && (
+                {order.status === 'completed' && (
                     <button
-                        onClick={() => updateStatus(order.id, 'cancelled')}
-                        className="text-red-400 hover:text-white hover:bg-red-500/20 border border-transparent hover:border-red-500/20 rounded-xl px-3 transition-colors"
-                        title="Cancel Order"
+                        onClick={() => handleDeleteOrder(order.id)}
+                        className="text-red-400 hover:text-white hover:bg-red-500/20 border border-red-500/20 rounded-xl px-3 py-2 transition-colors flex items-center justify-center"
+                        title="Delete History permanently"
                     >
-                        ✕
+                        🗑️
                     </button>
                 )}
             </div>
@@ -481,6 +493,12 @@ export const KitchenDashboard = () => {
                     </button>
                 </div>
                 <div className="flex items-center gap-4">
+                    {backgroundSyncing && (
+                        <div className="flex items-center gap-2 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
+                            <div className="animate-spin rounded-full h-3 w-3 border-2 border-emerald-500 border-t-transparent"></div>
+                            <span className="text-[10px] font-bold text-emerald-400">SYNCING</span>
+                        </div>
+                    )}
                     <div className="text-xs font-bold px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-2 animate-pulse">
                         <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
                         LIVE SYSTEM
@@ -495,553 +513,31 @@ export const KitchenDashboard = () => {
                             <h2 className="text-3xl md:text-4xl font-display font-bold text-white mb-2">Manager Validation</h2>
                             <div className="flex gap-4 mt-4">
                                 <button onClick={() => setActiveTab('menu')} className={`px-4 py-2 rounded-xl text-sm font-bold border transition-all ${activeTab === 'menu' ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white border-transparent shadow-lg shadow-emerald-500/30' : 'text-gray-400 border-white/10 hover:text-white hover:border-white/20'}`}>🍽️ Menu</button>
-                                <button onClick={() => setActiveTab('waiters')} className={`px-4 py-2 rounded-xl text-sm font-bold border transition-all ${activeTab === 'waiters' ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white border-transparent shadow-lg shadow-emerald-500/30' : 'text-gray-400 border-white/10 hover:text-white hover:border-white/20'}`}>👨‍🍳 Waiters</button>
-                                <button onClick={() => setActiveTab('settlement')} className={`px-4 py-2 rounded-xl text-sm font-bold border transition-all ${activeTab === 'settlement' ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white border-transparent shadow-lg shadow-emerald-500/30' : 'text-gray-400 border-white/10 hover:text-white hover:border-white/20'}`}>💰 Settlement</button>
-                                <button onClick={() => setActiveTab('payments')} className={`px-4 py-2 rounded-xl text-sm font-bold border transition-all ${activeTab === 'payments' ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white border-transparent shadow-lg shadow-emerald-500/30' : 'text-gray-400 border-white/10 hover:text-white hover:border-white/20'}`}>💳 Payments</button>
-                                <button onClick={() => setActiveTab('info')} className={`px-4 py-2 rounded-xl text-sm font-bold border transition-all ${activeTab === 'info' ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white border-transparent shadow-lg shadow-emerald-500/30' : 'text-gray-400 border-white/10 hover:text-white hover:border-white/20'}`}>ℹ️ Info</button>
                             </div>
                         </div>
                         {activeTab === 'menu' && (
-                            <button
-                                className="w-full md:w-auto btn-primary text-white px-6 py-3 md:px-8 md:py-4 rounded-2xl font-bold shadow-2xl hover:shadow-emerald-500/20 transition-all transform active:scale-95 flex items-center justify-center gap-2 group"
-                                onClick={() => setIsAddModalOpen(true)}
-                            >
-                                <span className="text-xl group-hover:rotate-90 transition-transform bg-white/20 w-8 h-8 rounded-full flex items-center justify-center">+</span> Add New Recipe
-                            </button>
-                        )}
-                        {activeTab === 'waiters' && (
-                            <button
-                                className="w-full md:w-auto btn-primary text-white px-6 py-3 md:px-8 md:py-4 rounded-2xl font-bold shadow-2xl hover:shadow-emerald-500/20 transition-all transform active:scale-95 flex items-center justify-center gap-2 group"
-                                onClick={() => setIsAddWaiterOpen(true)}
-                            >
-                                <span className="text-xl group-hover:rotate-90 transition-transform bg-white/20 w-8 h-8 rounded-full flex items-center justify-center">+</span> Add Waiter
-                            </button>
+                            <div className="flex gap-3 w-full md:w-auto">
+                                <button
+                                    className="flex-1 md:flex-none bg-white/5 border border-white/10 text-white px-6 py-3 md:px-8 md:py-4 rounded-2xl font-bold hover:bg-white/10 transition-all transform active:scale-95 flex items-center justify-center gap-2 group"
+                                    onClick={() => setIsAddCategoryOpen(true)}
+                                >
+                                    <span className="text-xl">📁</span> Add Category
+                                </button>
+                                <button
+                                    className="flex-1 md:flex-none btn-primary text-white px-6 py-3 md:px-8 md:py-4 rounded-2xl font-bold shadow-2xl hover:shadow-emerald-500/20 transition-all transform active:scale-95 flex items-center justify-center gap-2 group"
+                                    onClick={() => setIsAddModalOpen(true)}
+                                >
+                                    <span className="text-xl group-hover:rotate-90 transition-transform bg-white/20 w-8 h-8 rounded-full flex items-center justify-center">+</span> Add New Recipe
+                                </button>
+                            </div>
                         )}
                     </div>
 
-                    {activeTab === 'waiters' && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {waiters.map(waiter => (
-                                <div key={waiter.id} className="glass-panel p-6 rounded-2xl border border-white/10 flex justify-between items-center group">
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-12 h-12 bg-gradient-to-tr from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-xl font-bold text-white">
-                                            {waiter.name.charAt(0)}
-                                        </div>
-                                        <div>
-                                            <h3 className="font-bold text-white text-lg">{waiter.name}</h3>
-                                            <p className="text-xs text-gray-400">{waiter.email}</p>
-                                        </div>
-                                    </div>
-                                    <button onClick={() => handleDeleteWaiter(waiter.id)} className="text-red-400 hover:bg-red-500/10 p-2 rounded-lg transition-colors opacity-0 group-hover:opacity-100">
-                                        🗑️
-                                    </button>
-                                </div>
-                            ))}
-                            <Modal isOpen={isAddWaiterOpen} onClose={() => setIsAddWaiterOpen(false)} title="Add Waiter">
-                                <form onSubmit={handleCreateWaiter} className="space-y-4">
-                                    <input placeholder="Name" className="input-field w-full" value={newWaiter.name} onChange={e => setNewWaiter({ ...newWaiter, name: e.target.value })} required />
-                                    <input placeholder="Email" type="email" className="input-field w-full" value={newWaiter.email} onChange={e => setNewWaiter({ ...newWaiter, email: e.target.value })} required />
-                                    <input placeholder="Password" type="password" className="input-field w-full" value={newWaiter.password} onChange={e => setNewWaiter({ ...newWaiter, password: e.target.value })} required />
-                                    <button type="submit" className="btn-primary w-full py-3 rounded-xl font-bold text-white">Create Account</button>
-                                </form>
-                            </Modal>
-                        </div>
-                    )}
 
-                    {activeTab === 'settlement' && (() => {
-                        const report = generateFinancialReport();
-                        const currentPeriod = report[reportPeriod];
-
-                        return (
-                            <div className="space-y-8 animate-fade-in">
-                                {/* Luxury Header */}
-                                <div className="text-center mb-8 relative">
-                                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-emerald-500/10 to-transparent blur-xl"></div>
-                                    <h2 className="text-5xl font-display font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-emerald-200 to-teal-200 mb-3 tracking-tight relative animate-shimmer bg-[length:200%_100%]">Financial Overview</h2>
-                                    <p className="text-gray-400 text-sm font-medium">Premium Analytics Dashboard</p>
-                                </div>
-
-                                {/* Period Selection with Premium Style */}
-                                <div className="flex gap-3 justify-center backdrop-blur-md">
-                                    {(['daily', 'monthly', 'yearly'] as const).map(period => (
-                                        <button
-                                            key={period}
-                                            onClick={() => setReportPeriod(period)}
-                                            className={`relative px-8 py-4 rounded-2xl font-bold text-sm transition-all overflow-hidden group ${reportPeriod === period
-                                                ? 'bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-500 bg-[length:200%_100%] text-white shadow-[0_0_30px_rgba(16,185,129,0.4)] border-2 border-emerald-400/30'
-                                                : 'bg-black/30 text-gray-400 hover:bg-black/40 hover:text-white border-2 border-white/5 hover:border-emerald-500/20'
-                                                }`}
-                                        >
-                                            {/* Shimmer effect */}
-                                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
-                                            <span className="relative z-10 uppercase tracking-wider">{period.charAt(0).toUpperCase() + period.slice(1)}</span>
-                                        </button>
-                                    ))}
-                                </div>
-
-                                {/* Expenditure Summary with Premium Cards */}
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                    <div className="relative group overflow-hidden">
-                                        {/* Floating glow */}
-                                        <div className="absolute-inset-2 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
-                                        <div className="relative glass-panel p-8 rounded-3xl border-2 border-emerald-500/40 shadow-[0_8px_32px_rgba(16,185,129,0.2)] hover:shadow-[0_20px_60px_rgba(16,185,129,0.4)] transition-all duration-500 bg-gradient-to-br from-emerald-500/10 to-black/30">
-                                            {/* Icon */}
-                                            <div className="absolute top-4 right-4 w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-400/20 to-teal-500/20 flex items-center justify-center backdrop-blur-md border border-emerald-500/20">
-                                                <span className="text-3xl">💎</span>
-                                            </div>
-                                            <p className="text-xs font-black text-emerald-400/70 uppercase tracking-[0.2em] mb-3">Total Revenue</p>
-                                            <p className="text-5xl font-display font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 to-teal-300 mt-2 drop-shadow-[0_0_20px_rgba(16,185,129,0.5)]">₹{currentPeriod.total.toLocaleString()}</p>
-                                            <p className="text-xs text-gray-400 mt-3 font-medium">{reportPeriod.charAt(0).toUpperCase() + reportPeriod.slice(1)} Period</p>
-                                            {/* Animated underline */}
-                                            <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 to-teal-500 opacity-50 group-hover:opacity-100 transition-opacity"></div>
-                                        </div>
-                                    </div>
-                                    <div className="relative group overflow-hidden">
-                                        <div className="absolute -inset-2 bg-gradient-to-r from-blue-500/20 to-indigo-500/20 rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
-                                        <div className="relative glass-panel p-8 rounded-3xl border-2 border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.3)] hover:shadow-[0_20px_60px_rgba(100,100,255,0.2)] transition-all duration-500 bg-gradient-to-br from-blue-500/5 to-black/30">
-                                            <div className="absolute top-4 right-4 w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-400/20 to-indigo-500/20 flex items-center justify-center backdrop-blur-md border border-blue-500/20">
-                                                <span className="text-3xl">📊</span>
-                                            </div>
-                                            <p className="text-xs font-black text-blue-400/70 uppercase tracking-[0.2em] mb-3">Total Orders</p>
-                                            <p className="text-5xl font-display font-black text-white mt-2 drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]">{currentPeriod.count}</p>
-                                            <p className="text-xs text-gray-400 mt-3 font-medium">Completed Orders</p>
-                                            <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 to-indigo-500 opacity-50 group-hover:opacity-100 transition-opacity"></div>
-                                        </div>
-                                    </div>
-                                    <div className="relative group overflow-hidden">
-                                        <div className="absolute -inset-2 bg-gradient-to-r from-amber-500/20 to-orange-500/20 rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
-                                        <div className="relative glass-panel p-8 rounded-3xl border-2 border-amber-500/30 shadow-[0_8px_32px_rgba(245,158,11,0.2)] hover:shadow-[0_20px_60px_rgba(245,158,11,0.3)] transition-all duration-500 bg-gradient-to-br from-amber-500/10 to-black/30">
-                                            <div className="absolute top-4 right-4 w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-400/20 to-orange-500/20 flex items-center justify-center backdrop-blur-md border border-amber-500/20">
-                                                <span className="text-3xl">⭐</span>
-                                            </div>
-                                            <p className="text-xs font-black text-amber-400/70 uppercase tracking-[0.2em] mb-3">Avg Order Value</p>
-                                            <p className="text-5xl font-display font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-orange-300 mt-2 drop-shadow-[0_0_20px_rgba(245,158,11,0.5)]">₹{currentPeriod.count > 0 ? Math.round(currentPeriod.total / currentPeriod.count) : 0}</p>
-                                            <p className="text-xs text-gray-400 mt-3 font-medium">Per Order</p>
-                                            <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-500 to-orange-500 opacity-50 group-hover:opacity-100 transition-opacity"></div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Payment Methods Breakdown */}
-                                <div className="glass-panel p-8 rounded-3xl border border-white/10">
-                                    <div className="flex justify-between items-center mb-6">
-                                        <h3 className="text-2xl font-bold text-white">💳 Payment Methods</h3>
-                                    </div>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        {/* Cash Payments */}
-                                        <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/5 border border-green-500/20 rounded-2xl p-6">
-                                            <div className="flex items-center gap-3 mb-4">
-                                                <div className="w-12 h-12 rounded-xl bg-green-500/20 flex items-center justify-center text-2xl">💵</div>
-                                                <div>
-                                                    <h4 className="font-bold text-white text-lg">Cash</h4>
-                                                    <p className="text-xs text-gray-400">{currentPeriod.cashCount} transactions</p>
-                                                </div>
-                                            </div>
-                                            <div className="space-y-3">
-                                                <div className="flex justify-between items-end">
-                                                    <span className="text-3xl font-mono font-bold text-green-400">₹{currentPeriod.cash.toLocaleString()}</span>
-                                                    <span className="text-lg font-bold text-green-300">{currentPeriod.cashPercent}%</span>
-                                                </div>
-                                                <div className="w-full bg-black/20 rounded-full h-3 overflow-hidden">
-                                                    <div className="bg-gradient-to-r from-green-500 to-emerald-500 h-full rounded-full transition-all" style={{ width: `${currentPeriod.cashPercent}%` }}></div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {/* Online/UPI Payments */}
-                                        <div className="bg-gradient-to-br from-blue-500/10 to-indigo-500/5 border border-blue-500/20 rounded-2xl p-6">
-                                            <div className="flex items-center gap-3 mb-4">
-                                                <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center text-2xl">💳</div>
-                                                <div>
-                                                    <h4 className="font-bold text-white text-lg">Online / UPI</h4>
-                                                    <p className="text-xs text-gray-400">{currentPeriod.onlineCount} transactions</p>
-                                                </div>
-                                            </div>
-                                            <div className="space-y-3">
-                                                <div className="flex justify-between items-end">
-                                                    <span className="text-3xl font-mono font-bold text-blue-400">₹{currentPeriod.online.toLocaleString()}</span>
-                                                    <span className="text-lg font-bold text-blue-300">{currentPeriod.onlinePercent}%</span>
-                                                </div>
-                                                <div className="w-full bg-black/20 rounded-full h-3 overflow-hidden">
-                                                    <div className="bg-gradient-to-r from-blue-500 to-indigo-500 h-full rounded-full transition-all" style={{ width: `${currentPeriod.onlinePercent}%` }}></div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Waiter Performance with Premium Style */}
-                                {stats && (
-                                    <div className="relative group">
-                                        <div className="absolute -inset-2 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 rounded-[2rem] blur-2xl opacity-50 group-hover:opacity-100 transition-opacity"></div>
-                                        <div className="relative glass-panel p-10 rounded-[2rem] border-2 border-white/20 shadow-[0_20px_70px_rgba(0,0,0,0.4)] bg-gradient-to-br from-slate-900/90 to-black/80">
-                                            <div className="flex justify-between items-center mb-8 pb-6 border-b border-white/10">
-                                                <div>
-                                                    <h3 className="text-3xl font-display font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-200 to-teal-200 mb-2">👨‍🍳 Waiter Performance</h3>
-                                                    <p className="text-sm text-gray-400">Today's Statistics</p>
-                                                </div>
-                                                <button onClick={() => window.print()} className="relative px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 rounded-xl text-sm font-bold text-white transition-all shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/40 overflow-hidden group/btn">
-                                                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover/btn:translate-x-full transition-transform duration-1000"></div>
-                                                    <span className="relative z-10">🖨️ Print Report</span>
-                                                </button>
-                                            </div>
-                                            <div className="overflow-x-auto">
-                                                <table className="w-full text-left text-gray-300">
-                                                    <thead className="text-xs font-bold uppercase text-gray-500 border-b border-white/10">
-                                                        <tr>
-                                                            <th className="py-4">Waiter</th>
-                                                            <th className="py-4">Delivered Qty</th>
-                                                            <th className="py-4 text-right">Total Sales</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody className="divide-y divide-white/5">
-                                                        {stats.waiters.map((w: any) => (
-                                                            <tr key={w.id}>
-                                                                <td className="py-4 font-bold text-white">{w.name}</td>
-                                                                <td className="py-4">{w.count}</td>
-                                                                <td className="py-4 text-right font-mono">₹{w.total}</td>
-                                                            </tr>
-                                                        ))}
-                                                    </tbody>
-                                                    <tfoot className="border-t border-white/10">
-                                                        <tr>
-                                                            <td className="py-4 font-bold text-emerald-400 text-lg">TOTAL</td>
-                                                            <td className="py-4 font-bold text-white text-lg">{stats.summary.deliveredOrders}</td>
-                                                            <td className="py-4 font-bold text-emerald-400 text-lg text-right font-mono">₹{stats.summary.revenue}</td>
-                                                        </tr>
-                                                    </tfoot>
-                                                </table>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        );
-                    })()}
 
                     {/* NEW PAYMENTS TAB */}
-                    {activeTab === 'payments' && (() => {
-                        const report = generateFinancialReport();
-                        const currentPeriod = report[reportPeriod];
-
-                        return (
-                            <div className="space-y-8 animate-fade-in relative">
-                                {/* Luxury Animated Background - Emerald Theme */}
-                                <div className="fixed inset-0 pointer-events-none opacity-30 overflow-hidden">
-                                    <div className="absolute top-20 right-10 w-96 h-96 bg-gradient-to-br from-emerald-500/30 to-teal-500/20 rounded-full blur-[120px] animate-pulse"></div>
-                                    <div className="absolute bottom-20 left-10 w-96 h-96 bg-gradient-to-tl from-teal-500/20 to-emerald-500/30 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: '1.5s' }}></div>
-                                </div>
-
-                                <div className="relative z-10 space-y-8">
-                                    {/* Header */}
-                                    <div className="text-center mb-8 relative">
-                                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-emerald-500/10 to-transparent blur-xl"></div>
-                                        <h2 className="text-5xl font-display font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-emerald-200 to-teal-200 mb-3 tracking-tight relative animate-shimmer bg-[length:200%_100%]">Payment Analytics</h2>
-                                        <p className="text-gray-400 text-sm font-medium">Transaction Insights & Distribution</p>
-                                    </div>
-
-                                    {/* Period Selection */}
-                                    <div className="flex gap-3 justify-center backdrop-blur-md">
-                                        {(['daily', 'monthly', 'yearly'] as const).map(period => (
-                                            <button
-                                                key={period}
-                                                onClick={() => setReportPeriod(period)}
-                                                className={`relative px-8 py-4 rounded-2xl font-bold text-sm transition-all overflow-hidden group ${reportPeriod === period
-                                                    ? 'bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-500 bg-[length:200%_100%] text-white shadow-[0_0_30px_rgba(16,185,129,0.4)] border-2 border-emerald-400/30'
-                                                    : 'bg-black/30 text-gray-400 hover:bg-black/40 hover:text-white border-2 border-white/5 hover:border-emerald-500/20'
-                                                    }`}
-                                            >
-                                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
-                                                <span className="relative z-10 uppercase tracking-wider">{period.charAt(0).toUpperCase() + period.slice(1)}</span>
-                                            </button>
-                                        ))}
-                                    </div>
-
-                                    {/* Payment Methods - Premium Cards */}
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                        {/* Cash Payments - Ultra Premium */}
-                                        <div className="relative group">
-                                            <div className="absolute -inset-3 bg-gradient-to-br from-green-500/30 to-emerald-500/30 rounded-[2.5rem] blur-2xl opacity-50 group-hover:opacity-100 transition-all duration-700"></div>
-                                            <div className="relative bg-gradient-to-br from-green-500/10 via-emerald-500/5 to-black/40 border-2 border-green-500/30 rounded-[2rem] p-10 backdrop-blur-xl shadow-[0_20px_70px_rgba(34,197,94,0.3)] hover:shadow-[0_30px_90px_rgba(34,197,94,0.5)] transition-all duration-500">
-                                                {/* Sparkles */}
-                                                <div className="absolute top-6 right-6 w-3 h-3 bg-green-400 rounded-full animate-ping"></div>
-                                                <div className="absolute top-10 right-12 w-2 h-2 bg-emerald-400 rounded-full animate-ping" style={{ animationDelay: '0.5s' }}></div>
-
-                                                <div className="flex items-center gap-4 mb-6">
-                                                    <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-green-500/30 to-emerald-500/30 flex items-center justify-center border-2 border-green-500/30 shadow-lg shadow-green-500/20">
-                                                        <span className="text-5xl">💵</span>
-                                                    </div>
-                                                    <div>
-                                                        <h4 className="font-display font-black text-3xl text-transparent bg-clip-text bg-gradient-to-r from-green-300 to-emerald-300">Cash</h4>
-                                                        <p className="text-sm text-gray-400 font-medium mt-1">{currentPeriod.cashCount} transactions</p>
-                                                    </div>
-                                                </div>
-
-                                                <div className="space-y-5">
-                                                    <div className="flex justify-between items-end">
-                                                        <div>
-                                                            <p className="text-xs text-green-400/70 font-bold uppercase tracking-widest mb-2">Amount</p>
-                                                            <span className="text-5xl font-display font-black text-transparent bg-clip-text bg-gradient-to-r from-green-300 to-emerald-300 drop-shadow-[0_0_25px_rgba(34,197,94,0.6)]">₹{currentPeriod.cash.toLocaleString()}</span>
-                                                        </div>
-                                                        <div className="text-right">
-                                                            <p className="text-xs text-green-400/70 font-bold uppercase tracking-widest mb-2">Share</p>
-                                                            <span className="text-4xl font-black text-green-300">{currentPeriod.cashPercent}%</span>
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Animated Progress Bar */}
-                                                    <div className="relative">
-                                                        <div className="w-full bg-black/40 rounded-full h-4 overflow-hidden border border-green-500/20 shadow-inner">
-                                                            <div className="bg-gradient-to-r from-green-500 via-emerald-500 to-green-500 bg-[length:200%_100%] h-full rounded-full transition-all duration-1000 shadow-[0_0_20px_rgba(34,197,94,0.5)] animate-shimmer" style={{ width: `${currentPeriod.cashPercent}%` }}></div>
-                                                        </div>
-                                                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer rounded-full"></div>
-                                                    </div>
-                                                </div>
-
-                                                {/* Bottom accent line */}
-                                                <div className="absolute bottom-0 left-0 right-0 h-2 bg-gradient-to-r from-green-500 via-emerald-500 to-green-500 opacity-60 rounded-b-[2rem]"></div>
-                                            </div>
-                                        </div>
-
-                                        {/* Online/UPI Payments - Ultra Premium */}
-                                        <div className="relative group">
-                                            <div className="absolute -inset-3 bg-gradient-to-br from-blue-500/30 to-indigo-500/30 rounded-[2.5rem] blur-2xl opacity-50 group-hover:opacity-100 transition-all duration-700"></div>
-                                            <div className="relative bg-gradient-to-br from-blue-500/10 via-indigo-500/5 to-black/40 border-2 border-blue-500/30 rounded-[2rem] p-10 backdrop-blur-xl shadow-[0_20px_70px_rgba(59,130,246,0.3)] hover:shadow-[0_30px_90px_rgba(59,130,246,0.5)] transition-all duration-500">
-                                                {/* Sparkles */}
-                                                <div className="absolute top-6 right-6 w-3 h-3 bg-blue-400 rounded-full animate-ping"></div>
-                                                <div className="absolute top-10 right-12 w-2 h-2 bg-indigo-400 rounded-full animate-ping" style={{ animationDelay: '0.5s' }}></div>
-
-                                                <div className="flex items-center gap-4 mb-6">
-                                                    <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-500/30 to-indigo-500/30 flex items-center justify-center border-2 border-blue-500/30 shadow-lg shadow-blue-500/20">
-                                                        <span className="text-5xl">💳</span>
-                                                    </div>
-                                                    <div>
-                                                        <h4 className="font-display font-black text-3xl text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-indigo-300">Online / UPI</h4>
-                                                        <p className="text-sm text-gray-400 font-medium mt-1">{currentPeriod.onlineCount} transactions</p>
-                                                    </div>
-                                                </div>
-
-                                                <div className="space-y-5">
-                                                    <div className="flex justify-between items-end">
-                                                        <div>
-                                                            <p className="text-xs text-blue-400/70 font-bold uppercase tracking-widest mb-2">Amount</p>
-                                                            <span className="text-5xl font-display font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-indigo-300 drop-shadow-[0_0_25px_rgba(59,130,246,0.6)]">₹{currentPeriod.online.toLocaleString()}</span>
-                                                        </div>
-                                                        <div className="text-right">
-                                                            <p className="text-xs text-blue-400/70 font-bold uppercase tracking-widest mb-2">Share</p>
-                                                            <span className="text-4xl font-black text-blue-300">{currentPeriod.onlinePercent}%</span>
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Animated Progress Bar */}
-                                                    <div className="relative">
-                                                        <div className="w-full bg-black/40 rounded-full h-4 overflow-hidden border border-blue-500/20 shadow-inner">
-                                                            <div className="bg-gradient-to-r from-blue-500 via-indigo-500 to-blue-500 bg-[length:200%_100%] h-full rounded-full transition-all duration-1000 shadow-[0_0_20px_rgba(59,130,246,0.5)] animate-shimmer" style={{ width: `${currentPeriod.onlinePercent}%` }}></div>
-                                                        </div>
-                                                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer rounded-full"></div>
-                                                    </div>
-                                                </div>
-
-                                                {/* Bottom accent line */}
-                                                <div className="absolute bottom-0 left-0 right-0 h-2 bg-gradient-to-r from-blue-500 via-indigo-500 to-blue-500 opacity-60 rounded-b-[2rem]"></div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Summary Statistics */}
-                                    <div className="relative group">
-                                        <div className="absolute -inset-2 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 rounded-[2rem] blur-2xl opacity-50 group-hover:opacity-100 transition-opacity"></div>
-                                        <div className="relative glass-panel p-10 rounded-[2rem] border-2 border-emerald-500/20 shadow-[0_20px_70px_rgba(16,185,129,0.2)] bg-gradient-to-br from-emerald-500/5 to-black/60">
-                                            <h3 className="text-2xl font-display font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-200 to-teal-200 mb-6">📈 Transaction Summary</h3>
-                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                                                <div className="text-center p-4 bg-white/5 rounded-2xl border border-white/10">
-                                                    <p className="text-xs text-gray-400 uppercase font-bold mb-2">Total Transactions</p>
-                                                    <p className="text-3xl font-black text-white">{currentPeriod.count}</p>
-                                                </div>
-                                                <div className="text-center p-4 bg-white/5 rounded-2xl border border-white/10">
-                                                    <p className="text-xs text-gray-400 uppercase font-bold mb-2">Cash Count</p>
-                                                    <p className="text-3xl font-black text-green-400">{currentPeriod.cashCount}</p>
-                                                </div>
-                                                <div className="text-center p-4 bg-white/5 rounded-2xl border border-white/10">
-                                                    <p className="text-xs text-gray-400 uppercase font-bold mb-2">Online Count</p>
-                                                    <p className="text-3xl font-black text-blue-400">{currentPeriod.onlineCount}</p>
-                                                </div>
-                                                <div className="text-center p-4 bg-gradient-to-br from-emerald-500/10 to-teal-500/10 rounded-2xl border border-emerald-500/30">
-                                                    <p className="text-xs text-emerald-400 uppercase font-bold mb-2">Total Revenue</p>
-                                                    <p className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 to-teal-300">₹{currentPeriod.total.toLocaleString()}</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        );
-                    })()}
 
                     {/* NEW INFO TAB */}
-                    {activeTab === 'info' && (() => {
-                        // Calculate daily data for selected date
-                        const selectedOrders = allCompletedOrders.filter(o =>
-                            o.created_at.split('T')[0] === selectedDate
-                        );
-
-                        const totalRevenue = selectedOrders.reduce((sum, o) => sum + o.total_amount, 0);
-                        const cashRevenue = selectedOrders.filter(o => o.payment_method === 'cash').reduce((sum, o) => sum + o.total_amount, 0);
-                        const onlineRevenue = selectedOrders.filter(o => o.payment_method === 'online' || o.payment_method === 'upi').reduce((sum, o) => sum + o.total_amount, 0);
-
-                        // Calculate food items sold
-                        const foodStats: Record<string, { name: string; quantity: number; revenue: number }> = {};
-                        selectedOrders.forEach(order => {
-                            order.order_items.forEach((item: any) => {
-                                const itemName = item.menu_items?.name || 'Unknown';
-                                if (!foodStats[itemName]) {
-                                    foodStats[itemName] = { name: itemName, quantity: 0, revenue: 0 };
-                                }
-                                foodStats[itemName].quantity += item.quantity;
-                                // Approximate revenue per item
-                                foodStats[itemName].revenue += (order.total_amount / order.order_items.length) * item.quantity;
-                            });
-                        });
-
-                        const foodArray = Object.values(foodStats).sort((a, b) => b.quantity - a.quantity);
-                        const topFood = foodArray[0];
-
-                        return (
-                            <div className="space-y-8 animate-fade-in relative">
-                                {/* Luxury Background - Emerald Theme */}
-                                <div className="fixed inset-0 pointer-events-none opacity-30 overflow-hidden">
-                                    <div className="absolute top-20 left-20 w-96 h-96 bg-gradient-to-br from-emerald-500/30 to-teal-500/20 rounded-full blur-[120px] animate-pulse"></div>
-                                    <div className="absolute bottom-20 right-20 w-96 h-96 bg-gradient-to-tl from-teal-500/20 to-emerald-500/30 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: '1s' }}></div>
-                                </div>
-
-                                <div className="relative z-10 space-y-8">
-                                    {/* Header with Date Picker */}
-                                    <div className="text-center mb-8 relative">
-                                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-emerald-500/10 to-transparent blur-xl"></div>
-                                        <h2 className="text-5xl font-display font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-emerald-200 to-teal-200 mb-3 tracking-tight relative animate-shimmer bg-[length:200%_100%]">Daily Insights</h2>
-                                        <p className="text-gray-400 text-sm font-medium mb-6">Comprehensive Analytics for Selected Date</p>
-
-                                        {/* Date Picker */}
-                                        <div className="flex justify-center items-center gap-4 mt-6">
-                                            <label htmlFor="date-picker" className="text-emerald-400 font-bold text-sm uppercase tracking-wider">Select Date:</label>
-                                            <input
-                                                id="date-picker"
-                                                type="date"
-                                                value={selectedDate}
-                                                onChange={(e) => setSelectedDate(e.target.value)}
-                                                min={new Date(new Date().setFullYear(new Date().getFullYear() - 1)).toISOString().split('T')[0]}
-                                                max={new Date().toISOString().split('T')[0]}
-                                                className="px-6 py-3 bg-black/40 border-2 border-emerald-500/30 rounded-2xl text-white font-mono text-lg focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all cursor-pointer relative z-50"
-                                            />
-                                        </div>
-                                    </div>
-
-                                    {selectedOrders.length === 0 ? (
-                                        <div className="text-center py-20">
-                                            <div className="text-6xl mb-4">📅</div>
-                                            <p className="text-2xl font-bold text-gray-400">No orders found for this date</p>
-                                            <p className="text-gray-500 mt-2">Try selecting a different date</p>
-                                        </div>
-                                    ) : (
-                                        <>
-                                            {/* Summary Cards */}
-                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                                {/* Total Settlement */}
-                                                <div className="relative group">
-                                                    <div className="absolute -inset-2 bg-gradient-to-br from-emerald-500/30 to-teal-500/30 rounded-3xl blur-xl opacity-50 group-hover:opacity-100 transition-opacity duration-700"></div>
-                                                    <div className="relative bg-gradient-to-br from-emerald-500/10 to-black/40 border-2 border-emerald-500/30 rounded-2xl p-8 backdrop-blur-xl shadow-[0_20px_70px_rgba(16,185,129,0.3)]">
-                                                        <div className="absolute top-4 right-4 w-16 h-16 rounded-2xl bg-emerald-500/20 flex items-center justify-center text-3xl border border-emerald-500/30">💰</div>
-                                                        <p className="text-xs font-black text-emerald-400/70 uppercase tracking-[0.2em] mb-2">Total Settlement</p>
-                                                        <p className="text-4xl font-display font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 to-teal-300 drop-shadow-[0_0_20px_rgba(16,185,129,0.5)]">₹{totalRevenue.toLocaleString()}</p>
-                                                        <p className="text-xs text-gray-400 mt-2">{selectedOrders.length} orders</p>
-                                                    </div>
-                                                </div>
-
-                                                {/* Cash Payment */}
-                                                <div className="relative group">
-                                                    <div className="absolute -inset-2 bg-gradient-to-br from-green-500/30 to-emerald-500/30 rounded-3xl blur-xl opacity-50 group-hover:opacity-100 transition-opacity duration-700"></div>
-                                                    <div className="relative bg-gradient-to-br from-green-500/10 to-black/40 border-2 border-green-500/30 rounded-2xl p-8 backdrop-blur-xl shadow-[0_20px_70px_rgba(34,197,94,0.3)]">
-                                                        <div className="absolute top-4 right-4 w-16 h-16 rounded-2xl bg-green-500/20 flex items-center justify-center text-3xl border border-green-500/30">💵</div>
-                                                        <p className="text-xs font-black text-green-400/70 uppercase tracking-[0.2em] mb-2">Cash Payments</p>
-                                                        <p className="text-4xl font-display font-black text-transparent bg-clip-text bg-gradient-to-r from-green-300 to-emerald-300 drop-shadow-[0_0_20px_rgba(34,197,94,0.5)]">₹{cashRevenue.toLocaleString()}</p>
-                                                        <p className="text-xs text-gray-400 mt-2">{((cashRevenue / totalRevenue) * 100).toFixed(1)}% of total</p>
-                                                    </div>
-                                                </div>
-
-                                                {/* Online/UPI Payment */}
-                                                <div className="relative group">
-                                                    <div className="absolute -inset-2 bg-gradient-to-br from-blue-500/30 to-indigo-500/30 rounded-3xl blur-xl opacity-50 group-hover:opacity-100 transition-opacity duration-700"></div>
-                                                    <div className="relative bg-gradient-to-br from-blue-500/10 to-black/40 border-2 border-blue-500/30 rounded-2xl p-8 backdrop-blur-xl shadow-[0_20px_70px_rgba(59,130,246,0.3)]">
-                                                        <div className="absolute top-4 right-4 w-16 h-16 rounded-2xl bg-blue-500/20 flex items-center justify-center text-3xl border border-blue-500/30">💳</div>
-                                                        <p className="text-xs font-black text-blue-400/70 uppercase tracking-[0.2em] mb-2">Online/UPI</p>
-                                                        <p className="text-4xl font-display font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-indigo-300 drop-shadow-[0_0_20px_rgba(59,130,246,0.5)]">₹{onlineRevenue.toLocaleString()}</p>
-                                                        <p className="text-xs text-gray-400 mt-2">{((onlineRevenue / totalRevenue) * 100).toFixed(1)}% of total</p>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            {/* Top Selling Item */}
-                                            {topFood && (
-                                                <div className="relative group">
-                                                    <div className="absolute -inset-2 bg-gradient-to-r from-amber-500/20 to-orange-500/20 rounded-[2rem] blur-2xl opacity-50 group-hover:opacity-100 transition-opacity"></div>
-                                                    <div className="relative glass-panel p-10 rounded-[2rem] border-2 border-amber-500/30 shadow-[0_20px_70px_rgba(245,158,11,0.3)] bg-gradient-to-br from-amber-500/10 to-black/60">
-                                                        <div className="flex items-center gap-6">
-                                                            <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-amber-500/30 to-orange-500/30 flex items-center justify-center text-5xl border-2 border-amber-500/30 shadow-lg shadow-amber-500/20">
-                                                                🏆
-                                                            </div>
-                                                            <div className="flex-1">
-                                                                <p className="text-xs font-black text-amber-400/70 uppercase tracking-[0.2em] mb-2">Top Selling Item</p>
-                                                                <h3 className="text-4xl font-display font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-orange-300 mb-3">{topFood.name}</h3>
-                                                                <div className="flex gap-8">
-                                                                    <div>
-                                                                        <p className="text-xs text-gray-400 uppercase font-bold">Quantity Sold</p>
-                                                                        <p className="text-3xl font-black text-amber-400">{topFood.quantity}</p>
-                                                                    </div>
-                                                                    <div>
-                                                                        <p className="text-xs text-gray-400 uppercase font-bold">Revenue</p>
-                                                                        <p className="text-3xl font-black text-amber-400">₹{Math.round(topFood.revenue).toLocaleString()}</p>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            {/* All Foods Ordered - Emerald Theme */}
-                                            <div className="relative group">
-                                                <div className="absolute -inset-2 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 rounded-[2rem] blur-2xl opacity-50 group-hover:opacity-100 transition-opacity"></div>
-                                                <div className="relative glass-panel p-10 rounded-[2rem] border-2 border-emerald-500/20 shadow-[0_20px_70px_rgba(16,185,129,0.2)] bg-gradient-to-br from-emerald-500/5 to-black/60">
-                                                    <h3 className="text-2xl font-display font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-200 to-teal-200 mb-6">🍽️ All Foods Ordered</h3>
-                                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-96 overflow-y-auto custom-scrollbar pr-2">
-                                                        {foodArray.map((food, idx) => (
-                                                            <div key={idx} className="bg-white/5 border border-white/10 rounded-2xl p-4 hover:bg-white/10 hover:border-emerald-500/30 transition-all">
-                                                                <div className="flex justify-between items-start mb-2">
-                                                                    <h4 className="font-bold text-white text-lg">{food.name}</h4>
-                                                                    <span className="px-3 py-1 bg-emerald-500/20 text-emerald-300 rounded-lg text-xs font-bold border border-emerald-500/30">#{idx + 1}</span>
-                                                                </div>
-                                                                <div className="flex justify-between text-sm mt-3">
-                                                                    <div>
-                                                                        <p className="text-xs text-gray-400">Qty</p>
-                                                                        <p className="font-black text-emerald-400">{food.quantity}</p>
-                                                                    </div>
-                                                                    <div className="text-right">
-                                                                        <p className="text-xs text-gray-400">Revenue</p>
-                                                                        <p className="font-mono font-bold text-blue-400">₹{Math.round(food.revenue)}</p>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </>
-                                    )}
-                                </div>
-                            </div>
-                        );
-                    })()}
 
                     {activeTab === 'menu' && (
                         <div className="space-y-6 md:space-y-8 pb-20">
@@ -1051,12 +547,22 @@ export const KitchenDashboard = () => {
                                     <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl -mr-16 -mt-16 transition-opacity opacity-50 group-hover/cat:opacity-100"></div>
 
                                     <div className="flex items-center justify-between mb-8 relative z-10 border-b border-white/5 pb-4">
-                                        <h3 className="text-2xl font-bold text-white flex items-center gap-3">
-                                            {cat.name}
-                                            <span className="text-[10px] font-bold text-gray-400 bg-white/5 px-2 py-1 rounded-md border border-white/5 uppercase tracking-widest">
-                                                {cat.menu_items.length} Items
-                                            </span>
-                                        </h3>
+                                        <div className="flex items-center gap-4">
+                                            <h3 className="text-2xl font-bold text-white flex items-center gap-3">
+                                                {cat.name}
+                                                <span className="text-[10px] font-bold text-gray-400 bg-white/5 px-2 py-1 rounded-md border border-white/5 uppercase tracking-widest">
+                                                    {cat.menu_items.length} Items
+                                                </span>
+                                            </h3>
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <button onClick={() => setEditingCategory(cat)} className="p-2 text-gray-400 hover:text-blue-400 transition-colors" title="Edit Category">
+                                                📝
+                                            </button>
+                                            <button onClick={() => handleDeleteCategory(cat.id)} className="p-2 text-gray-400 hover:text-red-400 transition-colors" title="Delete Category">
+                                                🗑️
+                                            </button>
+                                        </div>
                                     </div>
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative z-10">
@@ -1241,6 +747,59 @@ export const KitchenDashboard = () => {
                             </div>
                         </div>
                     </Modal>
+
+                    {/* NEW: Add Category Modal */}
+                    <Modal isOpen={isAddCategoryOpen} onClose={() => setIsAddCategoryOpen(false)} title="Add Category">
+                        <form onSubmit={handleCreateCategory} className="space-y-4">
+                            <div>
+                                <label className="block text-xs font-bold text-gray-400 mb-2 uppercase tracking-wider">Category Name</label>
+                                <input
+                                    type="text" required
+                                    className="input-field w-full"
+                                    value={newCategoryName}
+                                    onChange={e => setNewCategoryName(e.target.value)}
+                                    placeholder="e.g. Starters, Main Course..."
+                                />
+                            </div>
+                            <button type="submit" className="w-full btn-primary text-white py-4 rounded-xl font-bold shadow-lg shadow-emerald-500/20">
+                                Create Category
+                            </button>
+                        </form>
+                    </Modal>
+
+                    {/* NEW: Edit Category Modal */}
+                    <Modal isOpen={!!editingCategory} onClose={() => setEditingCategory(null)} title="Edit Category">
+                        {editingCategory && (
+                            <form onSubmit={handleUpdateCategory} className="space-y-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-400 mb-2 uppercase tracking-wider">Category Name</label>
+                                    <input
+                                        type="text" required
+                                        className="input-field w-full"
+                                        value={editingCategory.name}
+                                        onChange={e => setEditingCategory({ ...editingCategory, name: e.target.value })}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-400 mb-2 uppercase tracking-wider">Sort Order</label>
+                                    <input
+                                        type="number" required
+                                        className="input-field w-full"
+                                        value={editingCategory.sort_order}
+                                        onChange={e => setEditingCategory({ ...editingCategory, sort_order: parseInt(e.target.value) })}
+                                    />
+                                </div>
+                                <div className="flex gap-4 pt-2">
+                                    <button type="button" onClick={() => setEditingCategory(null)} className="flex-1 bg-white/5 text-gray-400 py-3 rounded-xl font-bold hover:bg-white/10 transition-colors border border-white/5">
+                                        Cancel
+                                    </button>
+                                    <button type="submit" className="flex-1 btn-primary text-white py-3 rounded-xl font-bold shadow-lg shadow-emerald-500/20">
+                                        Update Category
+                                    </button>
+                                </div>
+                            </form>
+                        )}
+                    </Modal>
                 </div>
             ) : (
                 // LANDSCAPE OPTIMIZED VIEW
@@ -1319,6 +878,17 @@ export const KitchenDashboard = () => {
                     </button>
                 </div>
             </Modal>
+
+            <ConfirmModal
+                isOpen={confirmAction.isOpen}
+                onClose={() => setConfirmAction({ ...confirmAction, isOpen: false })}
+                title={confirmAction.title}
+                message={confirmAction.message}
+                onConfirm={confirmAction.onConfirm}
+                type={confirmAction.type}
+            />
+
+            {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
         </div>
     );
 };

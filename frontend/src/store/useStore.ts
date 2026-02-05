@@ -28,6 +28,7 @@ interface AppState {
     updateQuantity: (itemId: string, portion: string, delta: number) => void;
     clearCart: () => void;
     resetStore: () => void;
+    resetOrderState: () => void;
 }
 
 export const useStore = create<AppState>()(
@@ -78,8 +79,14 @@ export const useStore = create<AppState>()(
                 tableId: null,
                 tableNumber: null,
                 orderType: null,
-                restaurantId: null // Clear this to force scanner if desired, or keep it?
-                // Request says "take to scanner page". So we MUST clear restaurantId.
+                restaurantId: null
+            }),
+            resetOrderState: () => set({
+                cart: [],
+                customerName: null,
+                tableId: null,
+                tableNumber: null,
+                orderType: 'takeaway'
             }),
         }),
         {

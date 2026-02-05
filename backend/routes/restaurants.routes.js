@@ -18,4 +18,21 @@ router.get('/:id', async (req, res) => {
     }
 });
 
+// Update Restaurant Details
+router.put('/:id', async (req, res) => {
+    try {
+        const { data, error } = await supabase
+            .from('restaurants')
+            .update(req.body)
+            .eq('id', req.params.id)
+            .select()
+            .single();
+
+        if (error) throw error;
+        res.json(data);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 module.exports = router;

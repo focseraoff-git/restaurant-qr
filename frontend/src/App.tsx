@@ -10,6 +10,8 @@ import { BillPage } from './pages/BillPage';
 import { WaiterDashboard } from './pages/WaiterDashboard';
 import { WaiterLoginPage } from './pages/WaiterLoginPage';
 import { Protect } from './components/Protect';
+import { AdminDashboard } from './pages/AdminDashboard';
+import { CounterDashboard } from './pages/CounterDashboard';
 
 
 const RedirectToLogin = () => {
@@ -33,6 +35,8 @@ function App() {
         <Route path="/waiter/login/:restaurantId" element={<WaiterLoginPage />} />
         <Route path="/kitchen/:restaurantId" element={<Protect><KitchenDashboard /></Protect>} />
         <Route path="/waiter/:restaurantId/dashboard" element={<WaiterDashboard />} />
+        <Route path="/admin/:restaurantId/dashboard" element={<AdminDashboard />} />
+        <Route path="/counter/:restaurantId" element={<CounterDashboard />} />
 
         {/* Redirect old waiter route */}
         <Route path="/waiter/:restaurantId" element={<RedirectToLogin />} />

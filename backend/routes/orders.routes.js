@@ -197,4 +197,20 @@ router.put('/:id/status', async (req, res) => {
     }
 });
 
+// Delete Order
+router.delete('/:id', async (req, res) => {
+    try {
+        const { error } = await supabase
+            .from('orders')
+            .delete()
+            .eq('id', req.params.id);
+
+        if (error) throw error;
+        res.json({ success: true, message: 'Order deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting order:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 module.exports = router;

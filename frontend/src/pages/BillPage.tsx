@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../store/useStore';
 import api from '../utils/api';
+import { Toast } from '../components/Toast';
+import { Modal } from '../components/Modal';
 
 interface OrderItem {
     id: string;
@@ -28,6 +30,23 @@ export const BillPage = () => {
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
     const [showHistory, setShowHistory] = useState(false);
+    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
+    const [confirmAction, setConfirmAction] = useState<{
+        isOpen: boolean;
+        title: string;
+        message: string;
+        onConfirm: () => void;
+        type?: 'danger' | 'info';
+    }>({
+        isOpen: false,
+        title: '',
+        message: '',
+        onConfirm: () => { },
+    });
+
+    const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
+        setToast({ message, type });
+    };
 
     const fetchOrders = () => {
         setLoading(true);
@@ -39,8 +58,14 @@ export const BillPage = () => {
         api.get(`/orders/active`, {
             params: { restaurantId, customerName, tableNumber }
         })
-            .then(res => setOrders(res.data))
-            .catch(console.error)
+            .then(res => {
+                setOrders(res.data);
+                showToast('Orders updated', 'info');
+            })
+            .catch(err => {
+                console.error(err);
+                showToast('Failed to sync orders', 'error');
+            })
             .finally(() => setLoading(false));
     };
 
@@ -61,10 +86,15 @@ export const BillPage = () => {
     const totalDue = activeOrders.reduce((sum, order) => sum + order.total_amount, 0);
 
     const handleLogout = () => {
-        if (confirm('Are you sure you want to logout? This will clear your session.')) {
-            resetStore();
-            navigate('/');
-        }
+        setConfirmAction({
+            isOpen: true,
+            title: "End Session",
+            message: "Are you sure you want to logout? This will clear your current session data.",
+            onConfirm: () => {
+                resetStore();
+                navigate('/');
+            }
+        });
     };
 
     const handlePrint = () => {
@@ -226,6 +256,34 @@ export const BillPage = () => {
                     </button>
                 </div>
             </div>
+
+            {/* Confirmation Modal */}
+            <Modal isOpen={confirmAction.isOpen} onClose={() => setConfirmAction({ ...confirmAction, isOpen: false })} title={confirmAction.title}>
+                <div className="text-center">
+                    <div className={`w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-6 border ${confirmAction.type === 'danger' ? 'bg-red-500/10 border-red-500/20 text-red-500' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500'}`}>
+                        <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                    </div>
+                    <p className="text-gray-300 text-lg mb-8 leading-relaxed">
+                        {confirmAction.message}
+                    </p>
+                    <div className="flex gap-4">
+                        <button
+                            onClick={() => setConfirmAction({ ...confirmAction, isOpen: false })}
+                            className="flex-1 px-6 py-4 rounded-2xl bg-white/5 text-gray-400 font-bold hover:bg-white/10 transition-all border border-white/10"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            onClick={() => { confirmAction.onConfirm(); setConfirmAction({ ...confirmAction, isOpen: false }); }}
+                            className="flex-1 px-6 py-4 rounded-2xl font-bold text-white shadow-lg transition-all transform active:scale-95 bg-gradient-to-r from-red-600 to-rose-600 shadow-red-500/20 hover:shadow-red-500/40"
+                        >
+                            Confirm Logout
+                        </button>
+                    </div>
+                </div>
+            </Modal>
+
+            {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
         </div>
     );
 };

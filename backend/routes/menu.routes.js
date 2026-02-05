@@ -73,4 +73,49 @@ router.delete('/:id', async (req, res) => {
     }
 });
 
+// Add Category
+router.post('/categories', async (req, res) => {
+    const { restaurant_id, name, sort_order } = req.body;
+    try {
+        const { data, error } = await supabase
+            .from('menu_categories')
+            .insert([{ restaurant_id, name, sort_order: sort_order || 0 }])
+            .select();
+        if (error) throw error;
+        res.status(201).json(data[0]);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Update Category
+router.put('/categories/:id', async (req, res) => {
+    const { name, sort_order } = req.body;
+    try {
+        const { data, error } = await supabase
+            .from('menu_categories')
+            .update({ name, sort_order })
+            .eq('id', req.params.id)
+            .select();
+        if (error) throw error;
+        res.json(data[0]);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Delete Category
+router.delete('/categories/:id', async (req, res) => {
+    try {
+        const { error } = await supabase
+            .from('menu_categories')
+            .delete()
+            .eq('id', req.params.id);
+        if (error) throw error;
+        res.json({ message: 'Category deleted' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 module.exports = router;
