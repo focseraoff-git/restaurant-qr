@@ -22,7 +22,7 @@ router.post('/create', async (req, res) => {
                 user_metadata: {
                     full_name: name,
                     restaurant_id: restaurantId,
-                    role: role || 'staff'
+                    role: role || 'waiter',
                 }
             });
 
@@ -44,7 +44,7 @@ router.post('/create', async (req, res) => {
                 .insert([{
                     restaurant_id: restaurantId,
                     name: name,
-                    role: role || 'staff',
+                    role: role || 'waiter',
                     phone: phone || null,
                     base_salary: salary || 0,
                     status: 'active',
@@ -121,7 +121,7 @@ router.delete('/:id', async (req, res) => {
             const { error: updateError } = await supabase
                 .from('staff')
                 .update({
-                    status: 'inactive',
+                    status: 'exited',
                     user_id: null,
                     // Append deleted marker to name to allow re-using name later if needed, mostly visual
                     name: `${targetStaff.name} (Deleted)`
