@@ -55,7 +55,7 @@ const ConfirmModal = ({ isOpen, onClose, onConfirm, title, message, type = 'dang
 export const AdminDashboard = () => {
     const { restaurantId } = useParams();
     const navigate = useNavigate();
-    const { signOut } = useAuthStore();
+    const { signOut, profile } = useAuthStore();
 
     // Tab State
     const [activeTab, setActiveTab] = useState<'waiters' | 'settlement' | 'payments' | 'info'>('waiters');
@@ -212,6 +212,14 @@ export const AdminDashboard = () => {
             onConfirm: async () => {
                 try {
                     await api.delete(`/waiters/${id}`);
+
+                    // Check for Self-Deletion
+                    if (profile?.id === id) {
+                        await signOut();
+                        navigate('/login');
+                        return;
+                    }
+
                     showToast('Staff Deleted', 'success');
                     fetchStaff();
                 } catch (error: any) {
