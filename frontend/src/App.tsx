@@ -64,7 +64,7 @@ const DashboardRedirect = () => {
   if (profile.role === 'inventory') {
     return <Navigate to={`/inventory/${profile.restaurant_id}`} replace />;
   }
-  if (profile.role === 'staff') {
+  if (profile.role === 'staff' || profile.role === 'staff_manager') {
     return <Navigate to={`/staff/${profile.restaurant_id}`} replace />;
   }
   if (profile.role === 'kitchen' || profile.role === 'staff_kitchen') {

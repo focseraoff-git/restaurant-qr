@@ -394,6 +394,7 @@ export const AdminDashboard = () => {
                                 >
                                     <option value="admin">Admin (Owner)</option>
                                     <option value="manager">Manager (Supervisor)</option>
+                                    <option value="staff_manager">Staff Manager (HR)</option>
                                     <option value="waiter">Waiter (Service)</option>
                                     <option value="kitchen">Kitchen (KDS)</option>
                                     <option value="counter">Counter (POS & Billing)</option>
@@ -424,6 +425,7 @@ export const AdminDashboard = () => {
                                         >
                                             <option value="admin">Admin (Owner)</option>
                                             <option value="manager">Manager (Supervisor)</option>
+                                            <option value="staff_manager">Staff Manager (HR)</option>
                                             <option value="waiter">Waiter (Service)</option>
                                             <option value="kitchen">Kitchen (KDS)</option>
                                             <option value="counter">Counter (POS & Billing)</option>
