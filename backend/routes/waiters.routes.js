@@ -73,6 +73,12 @@ router.get('/:restaurantId', async (req, res) => {
     try {
         const { restaurantId } = req.params;
 
+        // Validation: Ensure ID is a UUID (prevents "create" or "stats" being treated as ID)
+        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(restaurantId);
+        if (!isUUID) {
+            return res.status(400).json({ error: 'Invalid Restaurant ID format' });
+        }
+
         // Simple Select from Staff table
         // Now 'user_id' tells us if they have login access
         const { data: staffList, error } = await supabase
