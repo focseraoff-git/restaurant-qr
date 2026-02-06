@@ -99,43 +99,54 @@ router.get('/:restaurantId', async (req, res) => {
     }
 });
 
-// Delete Staff/User
+// Delete Staff/User (Soft Delete to preserve history)
 router.delete('/:id', async (req, res) => {
     try {
         const id = req.params.id; // Could be Staff ID or Auth ID
 
-        // 1. Check if this ID belongs to a Staff record
-        // We search by BOTH because frontend might send either
+        // 1. Find the target staff
         const { data: targetStaff, error: fetchError } = await supabase
             .from('staff')
-            .select('id, user_id')
+            .select('id, user_id, name')
             .or(`id.eq.${id},user_id.eq.${id}`)
             .single();
 
         if (fetchError && fetchError.code !== 'PGRST116') throw fetchError;
 
         if (targetStaff) {
-            // Found the staff record.
-            // If it has a linked User ID, delete that Auth User (cascades or we handle it)
+            console.log(`Soft deleting staff: ${targetStaff.name} (${targetStaff.id})`);
+
+            // 2. Unlink Auth User and Deactivate Staff Record
+            // We DO NOT delete the row, to preserve Orders/Payroll history.
+            const { error: updateError } = await supabase
+                .from('staff')
+                .update({
+                    status: 'inactive',
+                    user_id: null,
+                    // Append deleted marker to name to allow re-using name later if needed, mostly visual
+                    name: `${targetStaff.name} (Deleted)`
+                })
+                .eq('id', targetStaff.id);
+
+            if (updateError) throw updateError;
+
+            // 3. Delete the Auth User (Prevent Login)
             if (targetStaff.user_id) {
                 const { error: authError } = await supabase.auth.admin.deleteUser(targetStaff.user_id);
-                if (authError) console.log('Auth delete warning:', authError.message);
-
-                // Also manually delete staff just in case cascade is missing
-                await supabase.from('staff').delete().eq('id', targetStaff.id);
-            } else {
-                // Just a database delete for non-login staff
-                await supabase.from('staff').delete().eq('id', targetStaff.id);
+                if (authError) {
+                    console.error('Auth delete warning:', authError.message);
+                    // Continue, as main goal was access revocation which user_id:null achieves
+                }
             }
         } else {
-            // Maybe it was just an Auth ID that had no staff record?
+            // No staff record found, just try to delete Auth ID (Cleanup)
             await supabase.auth.admin.deleteUser(id);
         }
 
-        res.json({ message: 'Deleted successfully' });
+        res.json({ message: 'User deleted successfully (History preserved)' });
     } catch (error) {
         console.error('Delete Error:', error);
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: error.message || 'Database error deleting user' });
     }
 });
 
