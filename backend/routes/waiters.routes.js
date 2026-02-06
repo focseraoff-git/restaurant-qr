@@ -145,8 +145,11 @@ router.delete('/:id', async (req, res) => {
 
         res.json({ message: 'User deleted successfully (History preserved)' });
     } catch (error) {
-        console.error('Delete Error:', error);
-        res.status(500).json({ error: error.message || 'Database error deleting user' });
+        console.error('FULL DELETE ERROR:', error);
+        res.status(500).json({
+            error: error.message || 'Database error deleting user',
+            details: error
+        });
     }
 });
 

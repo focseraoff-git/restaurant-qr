@@ -214,8 +214,9 @@ export const AdminDashboard = () => {
                     await api.delete(`/waiters/${id}`);
                     showToast('Staff Deleted', 'success');
                     fetchStaff();
-                } catch (error) {
-                    showToast('Failed to delete staff', 'error');
+                } catch (error: any) {
+                    showToast(error.response?.data?.error || 'Failed to delete staff', 'error');
+                    console.error('Delete Staff Error:', error);
                 }
             }
         });
