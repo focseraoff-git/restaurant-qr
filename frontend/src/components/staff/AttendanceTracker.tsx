@@ -2,11 +2,7 @@ import { useState, useEffect } from 'react';
 import { useStaffStore } from '../../store/useStaffStore';
 import { getLocalDate } from '../../utils/date';
 
-interface AttendanceRecord {
-    staff_id: string;
-    status: string;
-    notes?: string;
-}
+
 
 export const AttendanceTracker = ({ restaurantId, showToast }: { restaurantId: string, showToast: any }) => {
     // Consume Global Store

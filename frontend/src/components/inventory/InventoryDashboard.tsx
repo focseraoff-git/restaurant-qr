@@ -1,6 +1,6 @@
 import { useInventoryStore } from '../../store/useInventoryStore';
 
-export const InventoryDashboard = ({ restaurantId, showToast }: { restaurantId: string, showToast: any }) => {
+export const InventoryDashboard = ({ restaurantId: _restaurantId, showToast: _showToast }: { restaurantId: string, showToast: any }) => {
     const { items } = useInventoryStore();
 
     // Derived State

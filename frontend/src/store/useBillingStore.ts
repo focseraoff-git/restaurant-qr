@@ -17,6 +17,7 @@ interface Offer {
     code: string;
     value: number;
     type: string;
+    description?: string;
     is_active: boolean;
 }
 
@@ -44,7 +45,7 @@ interface BillingState {
     addOnlineOrder: (data: any) => Promise<void>;
 }
 
-export const useBillingStore = create<BillingState>((set, get) => ({
+export const useBillingStore = create<BillingState>((set) => ({
     stats: null,
     onlineStats: null,
     customers: [],

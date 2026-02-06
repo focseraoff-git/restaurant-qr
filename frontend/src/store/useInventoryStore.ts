@@ -20,6 +20,7 @@ interface InventoryItem {
     current_stock: number;
     min_stock_level: number;
     purchase_price: number;
+    storage_location?: string;
 }
 
 interface Purchase {
@@ -54,7 +55,7 @@ interface InventoryState {
     createPurchase: (data: any) => Promise<void>;
 }
 
-export const useInventoryStore = create<InventoryState>((set, get) => ({
+export const useInventoryStore = create<InventoryState>((set) => ({
     vendors: [],
     items: [],
     purchases: [],

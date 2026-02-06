@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import api from '../utils/api';
 import { supabase } from '../utils/supabaseClient';
-import { getLocalDate, getLocalMonth } from '../utils/date';
+import { getLocalDate } from '../utils/date';
 
 interface StaffState {
     staff: any[];

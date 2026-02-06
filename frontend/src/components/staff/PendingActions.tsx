@@ -1,6 +1,6 @@
 import { useStaffStore } from '../../store/useStaffStore';
 
-export const PendingActions = ({ showToast }: { showToast: any }) => {
+export const PendingActions = ({ showToast: _showToast }: { showToast: any }) => {
     const { staff, payroll, advances, loading, markPayrollPaid } = useStaffStore();
 
     if (loading) return <div className="text-center py-20 opacity-50">Analyzing system data...</div>;

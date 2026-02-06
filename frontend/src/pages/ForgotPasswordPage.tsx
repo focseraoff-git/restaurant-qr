@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 
 export const ForgotPasswordPage = () => {
