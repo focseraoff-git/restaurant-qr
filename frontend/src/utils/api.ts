@@ -2,11 +2,16 @@
 import axios from 'axios';
 
 const getBaseUrl = () => {
-    let url = import.meta.env.VITE_API_URL || 'http://localhost:3002/api';
-    if (!url.endsWith('/api')) {
-        url += '/api';
+    // 1. Explicit Env Var (e.g. set in Vercel UI)
+    if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
+
+    // 2. Production (Relative path for same-domain deployment)
+    if (!window.location.hostname.includes('localhost') && !window.location.hostname.includes('127.0.0.1')) {
+        return '/api';
     }
-    return url;
+
+    // 3. Local Development Fallback
+    return 'http://localhost:3002/api';
 };
 
 const api = axios.create({
