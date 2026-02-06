@@ -37,7 +37,8 @@ const DashboardRedirect = () => {
     hasUser: !!user,
     hasProfile: !!profile,
     isLoading: loading,
-    role: profile?.role
+    role: profile?.role,
+    fullProfile: profile // Added detailed log
   });
 
   if (loading) return <div className="p-10 text-white">Loading Dashboard...</div>;
