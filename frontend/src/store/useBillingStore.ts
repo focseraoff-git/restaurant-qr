@@ -43,9 +43,12 @@ interface BillingState {
     toggleOffer: (id: string, updates: any) => Promise<void>;
     logCancellation: (data: any) => Promise<void>;
     addOnlineOrder: (data: any) => Promise<void>;
+    deleteBill: (id: string, restaurantId: string) => Promise<void>;
+    updateBill: (id: string, data: any, restaurantId: string) => Promise<void>;
+    clearCancelledBills: (restaurantId: string) => Promise<void>;
 }
 
-export const useBillingStore = create<BillingState>((set) => ({
+export const useBillingStore = create<BillingState>((set, get) => ({
     stats: null,
     onlineStats: null,
     customers: [],
@@ -122,5 +125,27 @@ export const useBillingStore = create<BillingState>((set) => ({
     addOnlineOrder: async (data) => {
         await api.post('/billing/online-order', data);
         // Stats refresh usually needed after this
+    },
+
+    deleteBill: async (id, restaurantId) => {
+        try {
+            await api.delete(`/orders/${id}`);
+            // Force refresh stats to remove deleted bill
+            get().fetchStats(restaurantId, 'daily');
+        } catch (err) { throw err; }
+    },
+
+    updateBill: async (id, data, restaurantId) => {
+        try {
+            await api.put(`/orders/${id}`, data);
+            get().fetchStats(restaurantId, 'daily');
+        } catch (err) { throw err; }
+    },
+
+    clearCancelledBills: async (restaurantId) => {
+        try {
+            await api.delete(`/orders/cancelled/clear?restaurantId=${restaurantId}`);
+            get().fetchStats(restaurantId, 'daily');
+        } catch (err) { throw err; }
     }
 }));

@@ -4,7 +4,7 @@ import { Modal } from '../Modal';
 
 export const AdvanceTracker = ({ showToast }: { showToast: any }) => {
     // Consume Global Store
-    const { advances, staff, loading, addAdvance } = useStaffStore();
+    const { advances, staff, loading, addAdvance, deleteAdvance } = useStaffStore();
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [formData, setFormData] = useState({
@@ -63,11 +63,25 @@ export const AdvanceTracker = ({ showToast }: { showToast: any }) => {
                                         <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">{a.date} • {a.payment_method}</p>
                                     </div>
                                 </div>
-                                <div className="text-right">
-                                    <p className={`font - black text - lg ${a.is_recovery ? 'text-emerald-400' : 'text-red-400'} `}>
-                                        {a.is_recovery ? '+' : '-'} ₹{a.amount}
-                                    </p>
-                                    <p className="text-[8px] text-gray-600 uppercase font-black">{a.notes || 'No notes'}</p>
+                                <div className="flex items-center gap-4">
+                                    <div className="text-right">
+                                        <p className={`font-black text-lg ${a.is_recovery ? 'text-emerald-400' : 'text-red-400'}`}>
+                                            {a.is_recovery ? '+' : '-'} ₹{a.amount}
+                                        </p>
+                                        <p className="text-[8px] text-gray-600 uppercase font-black">{a.notes || 'No notes'}</p>
+                                    </div>
+                                    <button
+                                        onClick={async () => {
+                                            if (confirm('Delete this transaction?')) {
+                                                await deleteAdvance(a.id);
+                                                showToast('Transaction deleted', 'info');
+                                            }
+                                        }}
+                                        className="text-gray-600 hover:text-red-400 transition-colors p-2"
+                                        title="Delete"
+                                    >
+                                        🗑️
+                                    </button>
                                 </div>
                             </div>
                         ))}

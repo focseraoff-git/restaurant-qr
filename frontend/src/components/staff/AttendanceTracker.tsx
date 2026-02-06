@@ -6,14 +6,14 @@ import { getLocalDate } from '../../utils/date';
 
 export const AttendanceTracker = ({ restaurantId, showToast }: { restaurantId: string, showToast: any }) => {
     // Consume Global Store
-    const { staff, attendance, markAttendance: storeMarkAttendance, loading, refresh } = useStaffStore();
+    const { staff, attendance, markAttendance: storeMarkAttendance, deleteAttendance, loading, refresh } = useStaffStore();
 
     // UI Local State
     const [date, setDate] = useState(getLocalDate());
     const [noteDrafts, setNoteDrafts] = useState<Record<string, string>>({});
 
-    // Filter active staff from global store
-    const activeStaff = staff.filter((s: any) => s.status === 'active');
+    // Show all staff for attendance (unless explicitly deleted/archived, but we'll show all from store for now)
+    const activeStaff = staff;
 
     // React to date changes
     useEffect(() => {
@@ -26,6 +26,14 @@ export const AttendanceTracker = ({ restaurantId, showToast }: { restaurantId: s
         console.log(`[UI] Marking staff ${staffId} as ${status} for date ${date}`);
         await storeMarkAttendance(staffId, status, attendance[staffId]?.notes || '', date);
         console.log(`[UI] Mark action completed`);
+    };
+
+    const handleDelete = async (staffId: string) => {
+        const record = attendance[staffId];
+        if (!record) return;
+        console.log(`[UI] Deleting attendance for ${staffId}`);
+        await deleteAttendance(record.id);
+        showToast('Attendance cleared', 'info');
     };
 
     const updateNoteDraft = (staffId: string, text: string) => {
@@ -127,6 +135,15 @@ export const AttendanceTracker = ({ restaurantId, showToast }: { restaurantId: s
                                                     {status.short}
                                                 </button>
                                             ))}
+                                            {record.status && (
+                                                <button
+                                                    onClick={() => handleDelete(s.id)}
+                                                    className="w-12 h-12 flex items-center justify-center rounded-2xl border border-red-900/20 bg-red-900/5 text-red-500 hover:bg-red-900/20 transition-all ml-2"
+                                                    title="Clear / Delete"
+                                                >
+                                                    🗑️
+                                                </button>
+                                            )}
                                         </div>
                                     </td>
                                     <td className="px-8 py-5">

@@ -197,6 +197,22 @@ router.put('/:id/status', async (req, res) => {
     }
 });
 
+// Generic Update Order (Edit Bill)
+router.put('/:id', async (req, res) => {
+    try {
+        const { data, error } = await supabase
+            .from('orders')
+            .update(req.body)
+            .eq('id', req.params.id)
+            .select();
+
+        if (error) throw error;
+        res.json(data[0]);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // Delete Order
 router.delete('/:id', async (req, res) => {
     try {
@@ -209,6 +225,26 @@ router.delete('/:id', async (req, res) => {
         res.json({ success: true, message: 'Order deleted successfully' });
     } catch (error) {
         console.error('Error deleting order:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Clear All Cancelled Orders
+router.delete('/cancelled/clear', async (req, res) => {
+    const { restaurantId } = req.query;
+    try {
+        if (!restaurantId) return res.status(400).json({ error: 'Restaurant ID required' });
+
+        const { error } = await supabase
+            .from('orders')
+            .delete()
+            .eq('restaurant_id', restaurantId)
+            .eq('status', 'cancelled');
+
+        if (error) throw error;
+        res.json({ success: true, message: 'All cancelled orders cleared' });
+    } catch (error) {
+        console.error('Error clearing cancelled orders:', error);
         res.status(500).json({ error: error.message });
     }
 });

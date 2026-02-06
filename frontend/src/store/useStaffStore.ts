@@ -24,6 +24,12 @@ interface StaffState {
     addStaff: (data: any) => Promise<void>;
     updateStaff: (id: string, data: any) => Promise<void>;
     addAdvance: (data: any) => Promise<void>;
+    updateAdvance: (id: string, data: any) => Promise<void>;
+    deleteAdvance: (id: string) => Promise<void>;
+    generatePayroll: (restaurantId: string, month: string) => Promise<void>;
+    deletePayroll: (id: string) => Promise<void>;
+    updatePayroll: (id: string, data: any) => Promise<void>;
+    deleteAttendance: (id: string) => Promise<void>;
 }
 
 export const useStaffStore = create<StaffState>((set, get) => ({
@@ -182,10 +188,52 @@ export const useStaffStore = create<StaffState>((set, get) => ({
     addAdvance: async (data) => {
         try {
             await api.post('/advances', data);
-            // Realtime will trigger refresh
         } catch (err) {
             console.error('Failed to add advance', err);
             throw err;
         }
+    },
+
+    updateAdvance: async (id, data) => {
+        try {
+            await api.put(`/advances/${id}`, data);
+        } catch (err) { throw err; }
+    },
+
+    deleteAdvance: async (id) => {
+        try {
+            await api.delete(`/advances/${id}`);
+        } catch (err) { throw err; }
+    },
+
+    generatePayroll: async (restaurantId, month) => {
+        try {
+            await api.post('/payroll/generate', { restaurantId, month });
+        } catch (err) { throw err; }
+    },
+
+    deletePayroll: async (id) => {
+        try {
+            await api.delete(`/payroll/${id}`);
+        } catch (err) { throw err; }
+    },
+
+    updatePayroll: async (id, data) => {
+        try {
+            await api.put(`/payroll/${id}`, data);
+        } catch (err) { throw err; }
+    },
+
+    deleteAttendance: async (id) => {
+        try {
+            await api.delete(`/attendance/${id}`);
+            // Optimistic removal
+            const att = { ...get().attendance };
+            const keyToRemove = Object.keys(att).find(k => att[k].id === id);
+            if (keyToRemove) {
+                delete att[keyToRemove];
+                set({ attendance: att });
+            }
+        } catch (err) { throw err; }
     }
 }));

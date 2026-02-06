@@ -42,4 +42,37 @@ router.post('/', async (req, res) => {
     res.json(data[0]);
 });
 
+// Update Advance
+router.put('/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        const { data, error } = await supabase
+            .from('staff_advances')
+            .update(req.body)
+            .eq('id', id)
+            .select();
+
+        if (error) throw error;
+        res.json(data[0]);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Delete Advance
+router.delete('/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        const { error } = await supabase
+            .from('staff_advances')
+            .delete()
+            .eq('id', id);
+
+        if (error) throw error;
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 module.exports = router;

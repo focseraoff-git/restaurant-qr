@@ -127,7 +127,7 @@ function App() {
               <Route path="/inventory/:restaurantId" element={<InventoryManagement />} />
             </Route>
 
-            <Route element={<ProtectedRoute allowedRoles={['admin', 'manager', 'staff']} />}>
+            <Route element={<ProtectedRoute allowedRoles={['admin', 'manager', 'staff', 'staff_manager']} />}>
               <Route path="/staff/:restaurantId" element={<StaffManagement />} />
             </Route>
 

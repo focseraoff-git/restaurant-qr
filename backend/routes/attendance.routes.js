@@ -64,4 +64,20 @@ router.get('/report/:staffId', async (req, res) => {
     res.json(data);
 });
 
+// Delete attendance record
+router.delete('/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        const { error } = await supabase
+            .from('staff_attendance')
+            .delete()
+            .eq('id', id);
+
+        if (error) throw error;
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 module.exports = router;

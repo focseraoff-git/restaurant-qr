@@ -1,8 +1,9 @@
 import { useRef, useEffect } from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
-import { useAuthStore } from '../../store/useAuthStore';
+import { useAuthStore, type UserRole } from '../../store/useAuthStore';
 
-type UserRole = 'admin' | 'manager' | 'billing' | 'inventory' | 'staff' | 'counter' | 'waiter' | 'kitchen' | 'vendor_manager' | 'staff_counter' | 'staff_kitchen';
+// Removed duplicate UserRole type definition
+
 
 interface ProtectedRouteProps {
     allowedRoles?: UserRole[];

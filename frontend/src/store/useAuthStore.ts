@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { supabase } from '../utils/supabaseClient';
 import type { Session, User } from '@supabase/supabase-js';
 
-type UserRole = 'admin' | 'manager' | 'billing' | 'inventory' | 'staff' | 'staff_manager' | 'counter' | 'waiter' | 'kitchen' | 'vendor_manager' | 'staff_counter' | 'staff_kitchen';
+export type UserRole = 'admin' | 'manager' | 'billing' | 'inventory' | 'staff' | 'staff_manager' | 'counter' | 'waiter' | 'kitchen' | 'vendor_manager' | 'staff_counter' | 'staff_kitchen';
 
 // Profile now comes from the 'staff' table
 interface Profile {

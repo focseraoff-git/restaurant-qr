@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useBillingStore } from '../../store/useBillingStore';
 
 export const BillsDashboard = ({ restaurantId }: { restaurantId: string }) => {
-    const { stats, fetchStats, loading } = useBillingStore();
+    const { stats, fetchStats, loading, deleteBill, updateBill } = useBillingStore();
     const [period, setPeriod] = useState('daily');
 
     useEffect(() => {
@@ -58,7 +58,22 @@ export const BillsDashboard = ({ restaurantId }: { restaurantId: string }) => {
 
                 <div className="glass-panel p-6 rounded-2xl relative overflow-hidden group">
                     <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity text-4xl">🚫</div>
-                    <h3 className="text-gray-400 text-[10px] font-black uppercase tracking-widest">Cancelled Bills</h3>
+                    <div className="flex justify-between items-start">
+                        <h3 className="text-gray-400 text-[10px] font-black uppercase tracking-widest">Cancelled Bills</h3>
+                        {(stats?.cancelledCount ?? 0) > 0 && (
+                            <button
+                                onClick={async () => {
+                                    if (confirm('Clear all cancelled bills from history? This cannot be undone.')) {
+                                        const { clearCancelledBills } = useBillingStore.getState();
+                                        await clearCancelledBills(restaurantId);
+                                    }
+                                }}
+                                className="text-[10px] font-bold text-red-500 hover:text-red-400 bg-red-500/10 px-2 py-1 rounded hover:bg-red-500/20 transition-all uppercase tracking-wider z-10"
+                            >
+                                Clear All
+                            </button>
+                        )}
+                    </div>
                     <p className="text-5xl font-display font-black text-red-500 mt-2">
                         {stats?.cancelledCount ?? 0}
                     </p>
@@ -93,12 +108,37 @@ export const BillsDashboard = ({ restaurantId }: { restaurantId: string }) => {
                                     </td>
                                     <td className="p-4 font-black text-white">₹{order.total_amount}</td>
                                     <td className="p-4">
-                                        <span className={`px-2 py-1 rounded text-[10px] font-black uppercase tracking-wider ${order.status === 'completed' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' :
-                                            order.status === 'cancelled' ? 'bg-red-500/10 text-red-500 border border-red-500/20' :
-                                                'bg-amber-500/10 text-amber-500 border border-amber-500/20'
-                                            }`}>
-                                            {order.status}
-                                        </span>
+                                        <div className="flex items-center gap-2">
+                                            <span className={`px-2 py-1 rounded text-[10px] font-black uppercase tracking-wider ${order.status === 'completed' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' :
+                                                order.status === 'cancelled' ? 'bg-red-500/10 text-red-500 border border-red-500/20' :
+                                                    'bg-amber-500/10 text-amber-500 border border-amber-500/20'
+                                                }`}>
+                                                {order.status}
+                                            </span>
+                                            <button
+                                                onClick={async () => {
+                                                    const newAmt = prompt("Update Amount?", order.total_amount);
+                                                    if (newAmt && !isNaN(parseFloat(newAmt))) {
+                                                        await updateBill(order.id, { total_amount: parseFloat(newAmt) }, restaurantId);
+                                                    }
+                                                }}
+                                                className="p-1 hover:text-white text-gray-400"
+                                                title="Edit Amount"
+                                            >
+                                                ✏️
+                                            </button>
+                                            <button
+                                                onClick={async () => {
+                                                    if (confirm('Delete this bill permanently?')) {
+                                                        await deleteBill(order.id, restaurantId);
+                                                    }
+                                                }}
+                                                className="p-1 hover:text-red-400 text-gray-500"
+                                                title="Delete Bill"
+                                            >
+                                                🗑️
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             ))}

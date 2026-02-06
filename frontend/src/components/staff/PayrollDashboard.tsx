@@ -5,7 +5,7 @@ import api from '../../utils/api';
 
 export const PayrollDashboard = ({ restaurantId, showToast }: { restaurantId: string, showToast: any }) => {
     // Consume Global Store
-    const { payroll, loading, refresh, markPayrollPaid, restaurant } = useStaffStore();
+    const { payroll, loading, refresh, markPayrollPaid, deletePayroll, restaurant } = useStaffStore();
 
     // UI State
     const [month, setMonth] = useState(getLocalMonth());
@@ -44,6 +44,15 @@ export const PayrollDashboard = ({ restaurantId, showToast }: { restaurantId: st
             showToast('Payroll marked as paid', 'success');
         } catch (err) {
             showToast('Failed to mark as paid', 'error');
+        }
+    };
+    const handleDelete = async (payrollId: string) => {
+        if (!confirm('Are you sure you want to delete this payroll record?')) return;
+        try {
+            await deletePayroll(payrollId);
+            showToast('Payroll record deleted', 'success');
+        } catch (err) {
+            showToast('Failed to delete payroll', 'error');
         }
     };
 
@@ -135,6 +144,13 @@ export const PayrollDashboard = ({ restaurantId, showToast }: { restaurantId: st
                                         Mark Paid
                                     </button>
                                 )}
+                                <button
+                                    onClick={() => handleDelete(p.id)}
+                                    className="px-3 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-xl border border-red-500/20 transition-all font-bold"
+                                    title="Delete Record"
+                                >
+                                    🗑️
+                                </button>
                             </div>
                         </div>
                     ))}

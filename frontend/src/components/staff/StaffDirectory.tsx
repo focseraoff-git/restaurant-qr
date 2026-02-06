@@ -130,16 +130,16 @@ export const StaffDirectory = ({ restaurantId, showToast }: { restaurantId: stri
 
             {/* Add Staff Modal */}
             <Modal isOpen={isModalOpen} onClose={handleClose} title={editingId ? "Edit Staff Details" : "Register New Staff"}>
-                <form onSubmit={handleSubmit} className="space-y-5">
-                    <div className="grid grid-cols-2 gap-5">
+                <form onSubmit={handleSubmit} className="space-y-6">
+                    <div className="grid grid-cols-2 gap-6">
                         <div className="col-span-2">
                             <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-2 block">Full Name</label>
                             <input
                                 required
                                 value={formData.name}
                                 onChange={e => setFormData({ ...formData, name: e.target.value })}
-                                className="input-field w-full"
-                                placeholder="Staff Name"
+                                className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 transition-all font-bold text-white shadow-inner"
+                                placeholder="e.g. John Doe"
                             />
                         </div>
                         <div>
@@ -148,16 +148,17 @@ export const StaffDirectory = ({ restaurantId, showToast }: { restaurantId: stri
                                 required
                                 value={formData.role}
                                 onChange={e => setFormData({ ...formData, role: e.target.value })}
-                                className="input-field w-full appearance-none capitalize"
+                                className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-emerald-500/50 transition-all font-bold text-gray-300 appearance-none capitalize shadow-inner"
                             >
                                 <option value="" disabled>Select Role</option>
                                 <option value="admin">Admin</option>
-                                <option value="billing">Billing</option>
-                                <option value="inventory">Inventory</option>
-                                <option value="staff">Staff</option>
-                                <option value="counter">Counter</option>
+                                <option value="billing">Billing Manager</option>
+                                <option value="inventory">Inventory Manager</option>
+                                <option value="staff_manager">Staff Manager</option>
+                                <option value="staff">General Staff</option>
+                                <option value="counter">Counter Staff</option>
                                 <option value="waiter">Waiter</option>
-                                <option value="kitchen">Kitchen</option>
+                                <option value="kitchen">Kitchen Staff</option>
                             </select>
                         </div>
                         <div>
@@ -166,8 +167,8 @@ export const StaffDirectory = ({ restaurantId, showToast }: { restaurantId: stri
                                 required
                                 value={formData.phone}
                                 onChange={e => setFormData({ ...formData, phone: e.target.value })}
-                                className="input-field w-full"
-                                placeholder="Phone Number"
+                                className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-emerald-500/50 transition-all font-bold text-white shadow-inner"
+                                placeholder="+91..."
                             />
                         </div>
                         <div>
@@ -175,11 +176,11 @@ export const StaffDirectory = ({ restaurantId, showToast }: { restaurantId: stri
                             <select
                                 value={formData.salary_type}
                                 onChange={e => setFormData({ ...formData, salary_type: e.target.value })}
-                                className="input-field w-full appearance-none"
+                                className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-emerald-500/50 transition-all font-bold text-gray-300 appearance-none shadow-inner"
                             >
-                                <option value="monthly">Monthly</option>
-                                <option value="daily">Daily</option>
-                                <option value="hourly">Hourly</option>
+                                <option value="monthly">Monthly Salary</option>
+                                <option value="daily">Daily Wages</option>
+                                <option value="hourly">Hourly Rate</option>
                             </select>
                         </div>
                         <div>
@@ -189,12 +190,12 @@ export const StaffDirectory = ({ restaurantId, showToast }: { restaurantId: stri
                                 required
                                 value={formData.base_salary}
                                 onChange={e => setFormData({ ...formData, base_salary: parseFloat(e.target.value) })}
-                                className="input-field w-full"
+                                className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-emerald-500/50 transition-all font-bold text-emerald-400 font-mono shadow-inner"
                             />
                         </div>
                     </div>
-                    <button type="submit" className="w-full btn-primary py-4 rounded-xl mt-4 uppercase tracking-widest text-xs font-black shadow-xl shadow-emerald-500/20">
-                        {editingId ? "Update Details" : "Submit Registration"}
+                    <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-4 rounded-xl mt-4 uppercase tracking-[0.2em] text-xs font-black shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/40 transition-all transform active:scale-95">
+                        {editingId ? "Update Details" : "Register Staff"}
                     </button>
                 </form>
             </Modal>
