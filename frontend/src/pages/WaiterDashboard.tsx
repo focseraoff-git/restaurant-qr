@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import { supabase } from '../utils/supabaseClient';
+import { LogoutButton } from '../components/auth/LogoutButton';
 import { Toast } from '../components/Toast';
 import { Modal } from '../components/Modal';
 
@@ -488,6 +489,7 @@ export const WaiterDashboard = () => {
                         >
                             📋
                         </button>
+                        <LogoutButton />
                     </div>
                 </div>
             </header>

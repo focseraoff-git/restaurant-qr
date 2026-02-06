@@ -67,13 +67,20 @@ export const LiveOrdersBoard = ({ restaurantId, showToast, setConfirmAction }: {
 
     const StatusBadge = ({ status }: { status: string }) => {
         const colors: Record<string, string> = {
-            pending: 'bg-yellow-500/20 text-yellow-500 border-yellow-500/50',
+            pending: 'bg-amber-500/20 text-amber-500 border-amber-500/50',
             preparing: 'bg-blue-500/20 text-blue-500 border-blue-500/50',
-            ready: 'bg-green-500/20 text-green-500 border-green-500/50',
+            ready: 'bg-emerald-500/20 text-emerald-500 border-emerald-500/50',
             completed: 'bg-gray-500/20 text-gray-500 border-gray-500/50',
         };
+        const icons: Record<string, string> = {
+            pending: '⏳',
+            preparing: '👨‍🍳',
+            ready: '✅',
+            completed: '✨',
+        }
         return (
-            <span className={`px-2 py-1 rounded text-xs font-bold uppercase tracking-wide border ${colors[status] || 'bg-gray-700'}`}>
+            <span className={`px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border ${colors[status] || 'bg-gray-700'} flex items-center gap-1.5 shadow-sm`}>
+                <span>{icons[status]}</span>
                 {status}
             </span>
         );
@@ -86,48 +93,48 @@ export const LiveOrdersBoard = ({ restaurantId, showToast, setConfirmAction }: {
                     <div className="col-span-full flex flex-col items-center justify-center p-32 text-gray-500 opacity-50">
                         <span className="text-8xl mb-6 grayscale animate-float">🍽️</span>
                         <p className="text-3xl font-display font-bold">No active orders</p>
-                        <p className="text-sm mt-2">New orders will pop up here instantly.</p>
+                        <p className="text-sm mt-2 uppercase tracking-widest font-bold">New orders will pop up here instantly.</p>
                     </div>
                 )}
 
                 {orders.map(order => (
                     <div
                         key={order.id}
-                        className={`p-5 rounded-3xl shadow-2xl border backdrop-blur-md transition-all hover:scale-[1.02] duration-300 flex flex-col group relative overflow-hidden ${order.status === 'ready'
-                            ? 'bg-emerald-900/10 border-emerald-500/30'
+                        className={`p-5 rounded-3xl shadow-2xl border backdrop-blur-xl transition-all hover:scale-[1.02] duration-300 flex flex-col group relative overflow-hidden ${order.status === 'ready'
+                            ? 'bg-emerald-900/20 border-emerald-500/30 shadow-emerald-500/10'
                             : order.status === 'preparing'
-                                ? 'bg-blue-900/10 border-blue-500/30'
-                                : 'glass-card'}`}
+                                ? 'bg-blue-900/20 border-blue-500/30 shadow-blue-500/10'
+                                : 'glass-card border-white/5 bg-slate-900/60'}`}
                     >
                         {/* Status Stripe */}
-                        <div className={`absolute top-0 left-0 w-full h-1 ${order.status === 'ready' ? 'bg-emerald-500' : order.status === 'preparing' ? 'bg-blue-500' : 'bg-orange-500'}`}></div>
+                        <div className={`absolute top-0 left-0 w-full h-1 ${order.status === 'ready' ? 'bg-emerald-500' : order.status === 'preparing' ? 'bg-blue-500' : 'bg-amber-500'}`}></div>
 
                         {/* Header */}
                         <div className="flex justify-between items-start mb-4">
                             <div>
                                 <h3 className="font-bold text-xl flex items-center gap-2 text-white">
                                     {order.order_type === 'dine-in' ? (
-                                        <span className="bg-emerald-500/20 text-emerald-300 px-3 py-1 rounded-xl border border-emerald-500/20 text-sm flex items-center gap-1">
-                                            <span>🍽️</span> T-{order.table?.table_number || '?'}
+                                        <span className="bg-emerald-500/20 text-emerald-300 px-3 py-1.5 rounded-xl border border-emerald-500/20 text-xs font-black uppercase tracking-wider flex items-center gap-1">
+                                            <span>🍽️</span> Table {order.table?.table_number || '?'}
                                         </span>
                                     ) : (
-                                        <span className="bg-blue-500/20 text-blue-300 px-3 py-1 rounded-xl border border-blue-500/20 text-sm flex items-center gap-1">
+                                        <span className="bg-blue-500/20 text-blue-300 px-3 py-1.5 rounded-xl border border-blue-500/20 text-xs font-black uppercase tracking-wider flex items-center gap-1">
                                             <span>🛍️</span> Takeaway
                                         </span>
                                     )}
                                 </h3>
                                 {order.customer_name && (
-                                    <div className="font-display font-medium text-gray-200 mt-2 text-lg flex items-center gap-2">
-                                        <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-[10px] text-white font-bold shadow-lg">
+                                    <div className="font-display font-medium text-gray-200 mt-3 text-lg flex items-center gap-2">
+                                        <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-slate-700 to-slate-800 flex items-center justify-center text-xs text-white font-bold shadow-inner border border-white/10">
                                             {order.customer_name.charAt(0)}
                                         </div>
                                         {order.customer_name}
                                     </div>
                                 )}
-                                <span className="text-[10px] opacity-40 font-mono mt-1 block text-gray-400">ID: {order.id.slice(0, 4)}</span>
+                                <span className="text-[10px] opacity-40 font-mono mt-1 block text-gray-400 font-bold ml-1">#{order.id.slice(0, 4)}</span>
                             </div>
-                            <div className="text-right">
-                                <span className="text-lg font-bold font-mono block text-white/90">
+                            <div className="text-right flex flex-col items-end gap-2">
+                                <span className="text-xs font-black font-mono block text-gray-400 bg-black/20 px-2 py-1 rounded-lg">
                                     {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                 </span>
                                 <StatusBadge status={order.status} />
@@ -135,11 +142,11 @@ export const LiveOrdersBoard = ({ restaurantId, showToast, setConfirmAction }: {
                         </div>
 
                         {/* Items */}
-                        <div className="flex-1 space-y-2 mb-6 bg-black/20 p-4 rounded-2xl border border-white/5 overflow-y-auto custom-scrollbar max-h-[200px]">
+                        <div className="flex-1 space-y-2 mb-6 bg-black/20 p-4 rounded-xl border border-white/5 overflow-y-auto custom-scrollbar max-h-[200px] shadow-inner">
                             {order.order_items?.map((item, idx) => (
                                 <div key={idx} className="flex justify-between items-center text-sm border-b border-white/5 last:border-0 pb-2 last:pb-0">
-                                    <span className="text-gray-200 font-medium flex items-center gap-2">
-                                        <span className="font-bold text-emerald-400 bg-emerald-500/10 px-1.5 rounded border border-emerald-500/20">{item.quantity}x</span>
+                                    <span className="text-gray-200 font-medium flex items-center gap-3">
+                                        <span className="font-black text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 text-xs">{item.quantity}x</span>
                                         {item.menu_items?.name || 'Unknown Item'}
                                     </span>
                                 </div>
@@ -151,18 +158,18 @@ export const LiveOrdersBoard = ({ restaurantId, showToast, setConfirmAction }: {
                             {order.status !== 'ready' && (
                                 <button
                                     onClick={() => updateStatus(order.id, 'ready')}
-                                    className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold py-3 rounded-xl shadow-lg shadow-blue-500/20 transition-all active:scale-95 text-sm border border-transparent hover:border-blue-400/50"
+                                    className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-blue-500/20 transition-all active:scale-95 text-xs uppercase tracking-widest border border-transparent hover:border-blue-400/50 flex items-center justify-center gap-2"
                                 >
-                                    ✅ Ready
+                                    <span>✅</span> Ready
                                 </button>
                             )}
 
                             {order.status === 'ready' && (
                                 <button
                                     onClick={() => updateStatus(order.id, 'completed')}
-                                    className="flex-1 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold py-3 rounded-xl shadow-lg shadow-emerald-500/20 transition-all active:scale-95 text-sm border border-transparent hover:border-emerald-400/50"
+                                    className="flex-1 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-emerald-500/20 transition-all active:scale-95 text-xs uppercase tracking-widest border border-transparent hover:border-emerald-400/50 flex items-center justify-center gap-2"
                                 >
-                                    ✨ Completes
+                                    <span>✨</span> Complete
                                 </button>
                             )}
 

@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams } from 'react-router-dom';
+import { LogoutButton } from '../components/auth/LogoutButton';
 import api from '../utils/api';
 import { Toast } from '../components/Toast';
 import { Modal } from '../components/Modal';
@@ -479,8 +480,13 @@ export const KitchenDashboard = () => {
 
             <header className="glass-nav px-8 py-5 flex justify-between items-center sticky top-0 z-30 mb-6 shrink-0">
                 <div className="flex items-center gap-6">
-                    <h1 className="text-2xl font-display font-bold text-white tracking-tight flex items-center gap-2">
-                        <span className="text-3xl">👨‍🍳</span> Kitchen<span className="text-emerald-400">OS</span>
+                    <h1 className="text-2xl font-serif font-medium tracking-tight flex items-center gap-1 group cursor-default">
+                        <span className="text-white group-hover:text-emerald-50 transition-colors">Focsera</span>
+                        <span className="text-emerald-400 italic font-light relative">
+                            DineQR
+                            <span className="absolute -top-0.5 -right-1 w-1.5 h-1.5 bg-emerald-400 rounded-full blur-[1px] opacity-80 animate-pulse"></span>
+                        </span>
+                        <span className="ml-3 px-2 py-0.5 rounded-md bg-white/5 border border-white/5 text-[10px] font-sans text-gray-400 font-bold uppercase tracking-wider">Kitchen</span>
                     </h1>
                     <div className="h-6 w-px bg-white/10"></div>
                     <button
@@ -503,7 +509,9 @@ export const KitchenDashboard = () => {
                         <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
                         LIVE SYSTEM
                     </div>
+                    <LogoutButton />
                 </div>
+
             </header>
 
             {isManagerMode ? (

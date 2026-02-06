@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useAuthStore } from '../store/useAuthStore';
 import api from '../utils/api';
+import { supabase } from '../utils/supabaseClient';
 import { Toast } from '../components/Toast';
 import { Modal } from '../components/Modal';
 
@@ -53,15 +55,17 @@ const ConfirmModal = ({ isOpen, onClose, onConfirm, title, message, type = 'dang
 
 export const AdminDashboard = () => {
     const { restaurantId } = useParams();
+    const navigate = useNavigate();
+    const { signOut } = useAuthStore();
 
     // Tab State
     const [activeTab, setActiveTab] = useState<'waiters' | 'settlement' | 'payments' | 'info'>('waiters');
 
-    // Waiters State
-    const [waiters, setWaiters] = useState<any[]>([]);
-    const [isAddWaiterOpen, setIsAddWaiterOpen] = useState(false);
-    const [editingWaiter, setEditingWaiter] = useState<any>(null);
-    const [newWaiter, setNewWaiter] = useState({ name: '', email: '', password: '' });
+    // Staff State (Renamed from Waiters)
+    const [staff, setStaff] = useState<any[]>([]);
+    const [isAddStaffOpen, setIsAddStaffOpen] = useState(false);
+    const [editingStaff, setEditingStaff] = useState<any>(null);
+    const [newStaff, setNewStaff] = useState({ name: '', email: '', password: '', role: 'staff' });
 
     // Financial Reports State
     const [allCompletedOrders, setAllCompletedOrders] = useState<Order[]>([]);
@@ -98,13 +102,14 @@ export const AdminDashboard = () => {
     };
 
     // Fetch Functions
-    const fetchWaiters = async () => {
+    const fetchStaff = async () => {
         if (!restaurantId) return;
         setLoading(true);
         try {
             const cleanId = restaurantId.split('&')[0];
+            // We use the same endpoint (now upgraded) but conceptualize it as 'staff'
             const res = await api.get(`/waiters/${cleanId}`);
-            setWaiters(res.data);
+            setStaff(res.data);
         } catch (error) { console.error(error); }
         finally { setLoading(false); }
     };
@@ -180,46 +185,52 @@ export const AdminDashboard = () => {
     };
 
     // Handlers
-    const handleCreateWaiter = async (e: React.FormEvent) => {
+    const handleLogout = async () => {
+        await signOut();
+        navigate('/login');
+    }
+
+    const handleCreateStaff = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
             const cleanId = restaurantId?.split('&')[0];
-            await api.post('/waiters/create', { ...newWaiter, restaurantId: cleanId });
-            setNewWaiter({ name: '', email: '', password: '' });
-            setIsAddWaiterOpen(false);
-            showToast('Waiter Added Successfully!', 'success');
-            fetchWaiters();
+            // Post to same endpoint, but now includes 'role'
+            await api.post('/waiters/create', { ...newStaff, restaurantId: cleanId });
+            setNewStaff({ name: '', email: '', password: '', role: 'staff' });
+            setIsAddStaffOpen(false);
+            showToast('Staff Member Added Successfully!', 'success');
+            fetchStaff();
         } catch (error: any) {
-            showToast(error.response?.data?.error || 'Failed to create waiter', 'error');
+            showToast(error.response?.data?.error || 'Failed to create staff', 'error');
         }
     };
 
-    const handleDeleteWaiter = async (id: string) => {
+    const handleDeleteStaff = async (id: string) => {
         setConfirmAction({
             isOpen: true,
-            title: "Delete Waiter",
-            message: "Are you sure you want to delete this waiter account? They will lose access to the system.",
+            title: "Delete Staff",
+            message: "Are you sure you want to delete this account? They will lose access immediately.",
             onConfirm: async () => {
                 try {
                     await api.delete(`/waiters/${id}`);
-                    showToast('Waiter Deleted', 'success');
-                    fetchWaiters();
+                    showToast('Staff Deleted', 'success');
+                    fetchStaff();
                 } catch (error) {
-                    showToast('Failed to delete waiter', 'error');
+                    showToast('Failed to delete staff', 'error');
                 }
             }
         });
     };
 
-    const handleUpdateWaiter = async (e: React.FormEvent) => {
+    const handleUpdateStaff = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            await api.put(`/waiters/${editingWaiter.id}`, editingWaiter);
-            setEditingWaiter(null);
-            showToast('Waiter Updated Successfully!', 'success');
-            fetchWaiters();
+            await api.put(`/waiters/${editingStaff.id}`, editingStaff);
+            setEditingStaff(null);
+            showToast('Staff Updated Successfully!', 'success');
+            fetchStaff();
         } catch (error: any) {
-            showToast(error.response?.data?.error || 'Failed to update waiter', 'error');
+            showToast(error.response?.data?.error || 'Failed to update staff', 'error');
         }
     };
 
@@ -256,7 +267,7 @@ export const AdminDashboard = () => {
 
     // Effects
     useEffect(() => {
-        if (activeTab === 'waiters') fetchWaiters();
+        if (activeTab === 'waiters') fetchStaff();
         if (activeTab === 'settlement') {
             fetchStats();
             fetchAllCompletedOrders();
@@ -288,12 +299,23 @@ export const AdminDashboard = () => {
                         <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">OWNER ACCESS</span>
                     </div>
                 </div>
-                {loading && (
-                    <div className="flex items-center gap-3 bg-emerald-500/10 px-4 py-2 rounded-xl border border-emerald-500/20">
-                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-emerald-500 border-t-transparent"></div>
-                        <span className="text-xs font-bold text-emerald-400">SYNCING...</span>
-                    </div>
-                )}
+
+                <div className="flex items-center gap-4">
+                    {loading && (
+                        <div className="flex items-center gap-3 bg-emerald-500/10 px-4 py-2 rounded-xl border border-emerald-500/20">
+                            <div className="animate-spin rounded-full h-4 w-4 border-2 border-emerald-500 border-t-transparent"></div>
+                            <span className="text-xs font-bold text-emerald-400">SYNCING...</span>
+                        </div>
+                    )}
+
+                    <button
+                        onClick={handleLogout}
+                        className="px-4 py-2 rounded-xl bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 transition-all text-xs font-bold uppercase tracking-wider flex items-center gap-2"
+                    >
+                        <span>Logout</span>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                    </button>
+                </div>
             </header>
 
             {/* Main Content */}
@@ -303,7 +325,7 @@ export const AdminDashboard = () => {
                     <div>
                         <h2 className="text-3xl md:text-4xl font-display font-bold text-white mb-2">Business Management</h2>
                         <div className="flex gap-4 mt-4 flex-wrap">
-                            <button onClick={() => setActiveTab('waiters')} className={`px-4 py-2 rounded-xl text-sm font-bold border transition-all ${activeTab === 'waiters' ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white border-transparent shadow-lg shadow-emerald-500/30' : 'text-gray-400 border-white/10 hover:text-white hover:border-white/20'}`}>👨‍🍳 Waiters</button>
+                            <button onClick={() => setActiveTab('waiters')} className={`px-4 py-2 rounded-xl text-sm font-bold border transition-all ${activeTab === 'waiters' ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white border-transparent shadow-lg shadow-emerald-500/30' : 'text-gray-400 border-white/10 hover:text-white hover:border-white/20'}`}>👥 Staff & Roles</button>
                             <button onClick={() => setActiveTab('settlement')} className={`px-4 py-2 rounded-xl text-sm font-bold border transition-all ${activeTab === 'settlement' ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white border-transparent shadow-lg shadow-emerald-500/30' : 'text-gray-400 border-white/10 hover:text-white hover:border-white/20'}`}>💰 Settlement</button>
                             <button onClick={() => setActiveTab('payments')} className={`px-4 py-2 rounded-xl text-sm font-bold border transition-all ${activeTab === 'payments' ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white border-transparent shadow-lg shadow-emerald-500/30' : 'text-gray-400 border-white/10 hover:text-white hover:border-white/20'}`}>💳 Payments</button>
                             <button onClick={() => setActiveTab('info')} className={`px-4 py-2 rounded-xl text-sm font-bold border transition-all ${activeTab === 'info' ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white border-transparent shadow-lg shadow-emerald-500/30' : 'text-gray-400 border-white/10 hover:text-white hover:border-white/20'}`}>ℹ️ Info</button>
@@ -312,64 +334,101 @@ export const AdminDashboard = () => {
                     {activeTab === 'waiters' && (
                         <button
                             className="w-full md:w-auto btn-primary text-white px-6 py-3 md:px-8 md:py-4 rounded-2xl font-bold shadow-2xl hover:shadow-emerald-500/20 transition-all transform active:scale-95 flex items-center justify-center gap-2 group"
-                            onClick={() => setIsAddWaiterOpen(true)}
+                            onClick={() => setIsAddStaffOpen(true)}
                         >
-                            <span className="text-xl group-hover:rotate-90 transition-transform bg-white/20 w-8 h-8 rounded-full flex items-center justify-center">+</span> Add Waiter
+                            <span className="text-xl group-hover:rotate-90 transition-transform bg-white/20 w-8 h-8 rounded-full flex items-center justify-center">+</span> Add Staff
                         </button>
                     )}
                 </div>
 
-                {/* Tab Content - Waiters */}
+                {/* Tab Content - Staff / Waiters */}
                 {activeTab === 'waiters' && (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {waiters.map(waiter => (
-                            <div key={waiter.id} className="glass-panel p-6 rounded-2xl border border-white/10 flex justify-between items-center group">
+                        {staff.map(member => (
+                            <div key={member.id} className="glass-panel p-6 rounded-2xl border border-white/10 flex justify-between items-center group relative overflow-hidden">
+                                {member.role === 'admin' && <div className="absolute top-0 right-0 bg-emerald-500 text-[10px] font-bold px-2 py-1 rounded-bl-xl text-white">ADMIN</div>}
+                                {member.role === 'manager' && <div className="absolute top-0 right-0 bg-blue-500 text-[10px] font-bold px-2 py-1 rounded-bl-xl text-white">MANAGER</div>}
+
                                 <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 bg-gradient-to-tr from-emerald-500 to-teal-500 rounded-full flex items-center justify-center text-xl font-bold text-white">
-                                        {waiter.name.charAt(0)}
+                                    <div className={`w-12 h-12 rounded-full flex items-center justify-center text-xl font-bold text-white ${member.role === 'admin' ? 'bg-gradient-to-tr from-emerald-500 to-teal-500' :
+                                        member.role === 'kitchen' ? 'bg-gradient-to-tr from-orange-500 to-red-500' :
+                                            'bg-gradient-to-tr from-slate-600 to-slate-500'
+                                        }`}>
+                                        {member.full_name?.charAt(0) || member.name?.charAt(0) || '?'}
                                     </div>
                                     <div>
-                                        <h3 className="font-bold text-white text-lg">{waiter.name}</h3>
-                                        <p className="text-xs text-gray-400">{waiter.email}</p>
+                                        <h3 className="font-bold text-white text-lg">{member.full_name || member.name}</h3>
+                                        <p className="text-xs text-gray-400">{member.email}</p>
+                                        <span className="text-[10px] uppercase font-bold tracking-wider text-gray-500 border border-gray-700 px-2 py-0.5 rounded-full mt-1 inline-block">
+                                            {member.role || 'Staff'}
+                                        </span>
                                     </div>
                                 </div>
                                 <div className="flex gap-2">
-                                    <button onClick={() => setEditingWaiter(waiter)} className="text-blue-400 hover:bg-blue-500/10 p-2 rounded-lg transition-colors opacity-0 group-hover:opacity-100">
+                                    <button onClick={() => setEditingStaff(member)} className="text-blue-400 hover:bg-blue-500/10 p-2 rounded-lg transition-colors opacity-0 group-hover:opacity-100">
                                         📝
                                     </button>
-                                    <button onClick={() => handleDeleteWaiter(waiter.id)} className="text-red-400 hover:bg-red-500/10 p-2 rounded-lg transition-colors opacity-0 group-hover:opacity-100">
+                                    <button onClick={() => handleDeleteStaff(member.id)} className="text-red-400 hover:bg-red-500/10 p-2 rounded-lg transition-colors opacity-0 group-hover:opacity-100">
                                         🗑️
                                     </button>
                                 </div>
                             </div>
                         ))}
-                        <Modal isOpen={isAddWaiterOpen} onClose={() => setIsAddWaiterOpen(false)} title="Add Waiter">
-                            <form onSubmit={handleCreateWaiter} className="space-y-4">
-                                <input placeholder="Name" className="input-field w-full" value={newWaiter.name} onChange={e => setNewWaiter({ ...newWaiter, name: e.target.value })} required />
-                                <input placeholder="Email" type="email" className="input-field w-full" value={newWaiter.email} onChange={e => setNewWaiter({ ...newWaiter, email: e.target.value })} required />
-                                <input placeholder="Password" type="password" className="input-field w-full" value={newWaiter.password} onChange={e => setNewWaiter({ ...newWaiter, password: e.target.value })} required />
+                        <Modal isOpen={isAddStaffOpen} onClose={() => setIsAddStaffOpen(false)} title="Add Staff Member">
+                            <form onSubmit={handleCreateStaff} className="space-y-4">
+                                <input placeholder="Name" className="input-field w-full" value={newStaff.name} onChange={e => setNewStaff({ ...newStaff, name: e.target.value })} required />
+                                <input placeholder="Email" type="email" className="input-field w-full" value={newStaff.email} onChange={e => setNewStaff({ ...newStaff, email: e.target.value })} required />
+                                <input placeholder="Password" type="password" className="input-field w-full" value={newStaff.password} onChange={e => setNewStaff({ ...newStaff, password: e.target.value })} required />
+                                <select
+                                    className="input-field w-full appearance-none capitalize"
+                                    value={newStaff.role}
+                                    onChange={e => setNewStaff({ ...newStaff, role: e.target.value })}
+                                >
+                                    <option value="admin">Admin (Owner)</option>
+                                    <option value="manager">Manager (Supervisor)</option>
+                                    <option value="waiter">Waiter (Service)</option>
+                                    <option value="kitchen">Kitchen (KDS)</option>
+                                    <option value="counter">Counter (POS & Billing)</option>
+                                    <option value="inventory">Inventory (Store)</option>
+                                </select>
                                 <button type="submit" className="btn-primary w-full py-3 rounded-xl font-bold text-white">Create Account</button>
                             </form>
                         </Modal>
 
-                        <Modal isOpen={!!editingWaiter} onClose={() => setEditingWaiter(null)} title="Edit Waiter">
-                            {editingWaiter && (
-                                <form onSubmit={handleUpdateWaiter} className="space-y-4">
+                        <Modal isOpen={!!editingStaff} onClose={() => setEditingStaff(null)} title="Edit Staff Member">
+                            {editingStaff && (
+                                <form onSubmit={handleUpdateStaff} className="space-y-4">
                                     <div>
                                         <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">Full Name</label>
-                                        <input placeholder="Name" className="input-field w-full" value={editingWaiter.name} onChange={e => setEditingWaiter({ ...editingWaiter, name: e.target.value })} required />
+                                        <input className="input-field w-full" value={editingStaff.full_name || editingStaff.name} onChange={e => setEditingStaff({ ...editingStaff, name: e.target.value, full_name: e.target.value })} required />
                                     </div>
                                     <div>
                                         <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">Email Address</label>
-                                        <input placeholder="Email" type="email" className="input-field w-full" value={editingWaiter.email} onChange={e => setEditingWaiter({ ...editingWaiter, email: e.target.value })} required />
+                                        {/* Typically email isn't editable easily without re-confirmation, but we allow admin override here */}
+                                        <input type="email" className="input-field w-full" value={editingStaff.email || ''} onChange={e => setEditingStaff({ ...editingStaff, email: e.target.value })} />
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">Role</label>
+                                        <select
+                                            className="input-field w-full appearance-none capitalize"
+                                            value={editingStaff.role || 'staff'}
+                                            onChange={e => setEditingStaff({ ...editingStaff, role: e.target.value })}
+                                        >
+                                            <option value="admin">Admin (Owner)</option>
+                                            <option value="manager">Manager (Supervisor)</option>
+                                            <option value="waiter">Waiter (Service)</option>
+                                            <option value="kitchen">Kitchen (KDS)</option>
+                                            <option value="counter">Counter (POS & Billing)</option>
+                                            <option value="inventory">Inventory (Store)</option>
+                                        </select>
                                     </div>
                                     <div>
                                         <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">Change Password (optional)</label>
-                                        <input placeholder="Leave blank to keep current" type="password" className="input-field w-full" value={editingWaiter.password || ''} onChange={e => setEditingWaiter({ ...editingWaiter, password: e.target.value })} />
+                                        <input placeholder="Leave blank to keep current" type="password" className="input-field w-full" value={editingStaff.password || ''} onChange={e => setEditingStaff({ ...editingStaff, password: e.target.value })} />
                                     </div>
                                     <div className="flex gap-4 pt-2">
-                                        <button type="button" onClick={() => setEditingWaiter(null)} className="flex-1 bg-white/5 text-gray-400 py-3 rounded-xl font-bold hover:bg-white/10 transition-colors border border-white/5">Cancel</button>
-                                        <button type="submit" className="flex-1 btn-primary py-3 rounded-xl font-bold text-white">Update Waiter</button>
+                                        <button type="button" onClick={() => setEditingStaff(null)} className="flex-1 bg-white/5 text-gray-400 py-3 rounded-xl font-bold hover:bg-white/10 transition-colors border border-white/5">Cancel</button>
+                                        <button type="submit" className="flex-1 btn-primary py-3 rounded-xl font-bold text-white">Update Staff</button>
                                     </div>
                                 </form>
                             )}

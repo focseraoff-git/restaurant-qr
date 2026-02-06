@@ -232,9 +232,11 @@ export const NewOrderPanel = ({ restaurantId, showToast }: { restaurantId: strin
     };
 
     return (
-        <div className="flex flex-col lg:flex-row h-full gap-4 lg:gap-8 pb-20 lg:pb-0">
+        <div className="flex flex-col lg:flex-row h-full gap-6 pb-20 lg:pb-0">
             {/* Left: Menu & Selection (65%) */}
-            <div className="w-full lg:w-[65%] flex flex-col glass-panel rounded-3xl overflow-hidden border-white/5 bg-slate-900/60 shadow-2xl">
+            <div className="w-full lg:w-[65%] flex flex-col glass-panel rounded-3xl overflow-hidden border-white/5 bg-slate-900/60 shadow-2xl relative">
+                {/* Decorative Glow */}
+                <div className="absolute -top-20 -left-20 w-64 h-64 bg-emerald-500/10 rounded-full blur-[80px] pointer-events-none"></div>
 
                 {/* Search & Filter Bar */}
                 <div className="p-5 border-b border-white/5 flex flex-col md:flex-row gap-4 bg-black/20 backdrop-blur-md sticky top-0 z-20">
@@ -261,7 +263,7 @@ export const NewOrderPanel = ({ restaurantId, showToast }: { restaurantId: strin
                 </div>
 
                 {/* Grid of Items */}
-                <div className="flex-1 overflow-y-auto p-4 md:p-6 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 content-start custom-scrollbar">
+                <div className="flex-1 overflow-y-auto p-4 md:p-6 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 content-start custom-scrollbar z-10">
                     {filteredItems.map(item => (
                         <div
                             key={item.id}
@@ -272,23 +274,23 @@ export const NewOrderPanel = ({ restaurantId, showToast }: { restaurantId: strin
                                 quantity: 1,
                                 portion: 'full'
                             })}
-                            className="glass-card p-0 rounded-2xl cursor-pointer active:scale-95 group relative overflow-hidden flex flex-col h-full border-white/5 hover:border-emerald-500/30"
+                            className="glass-card p-0 rounded-2xl cursor-pointer active:scale-95 group relative overflow-hidden flex flex-col h-full border hover:border-emerald-500/50 transition-all duration-300 bg-slate-800/40 hover:bg-slate-800/60 hover:shadow-emerald-500/10 hover:shadow-lg"
                         >
                             <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-white/5 to-transparent rounded-bl-[50px] -mr-4 -mt-4 transition-all group-hover:from-emerald-500/20 z-0"></div>
 
-                            <div className="p-5 flex flex-col h-full bg-gradient-to-b from-transparent to-black/20 z-10 relative">
+                            <div className="p-5 flex flex-col h-full z-10 relative">
                                 <div className="flex justify-between items-start mb-3">
-                                    <div className={`w-3 h-3 rounded-full shrink-0 ring-2 ring-offset-2 ring-offset-slate-900 ${item.is_veg ? 'bg-green-500 ring-green-500/30' : 'bg-red-500 ring-red-500/30'}`} />
-                                    {item.price_half && <span className="text-[10px] bg-white/10 px-1.5 py-0.5 rounded text-gray-400">Half Avail.</span>}
+                                    <div className={`w-3 h-3 rounded-full shrink-0 ring-2 ring-offset-2 ring-offset-slate-900 shadow-lg ${item.is_veg ? 'bg-green-500 ring-green-500/30' : 'bg-red-500 ring-red-500/30'}`} />
+                                    {item.price_half && <span className="text-[10px] bg-white/10 px-1.5 py-0.5 rounded text-gray-400 font-bold uppercase tracking-wider">Half Avail.</span>}
                                 </div>
 
-                                <h3 className="font-bold text-lg text-gray-100 leading-tight mb-auto group-hover:text-emerald-200 transition-colors">{item.name}</h3>
+                                <h3 className="font-bold text-lg text-gray-100 leading-tight mb-auto group-hover:text-emerald-200 transition-colors line-clamp-2">{item.name}</h3>
 
                                 <div className="mt-4 flex items-end justify-between">
                                     <div className="text-xl font-display font-bold text-emerald-400 drop-shadow-lg">
                                         ₹{item.price_full}
                                     </div>
-                                    <div className="w-8 h-8 rounded-full bg-white/5 border border-white/5 flex items-center justify-center text-white text-lg font-light group-hover:bg-emerald-500 group-hover:text-black group-hover:border-emerald-500 transition-all shadow-lg">
+                                    <div className="w-8 h-8 rounded-full bg-white/5 border border-white/5 flex items-center justify-center text-white text-lg font-light group-hover:bg-emerald-500 group-hover:text-black group-hover:border-emerald-500 transition-all shadow-lg group-hover:shadow-emerald-500/50">
                                         +
                                     </div>
                                 </div>
@@ -297,7 +299,7 @@ export const NewOrderPanel = ({ restaurantId, showToast }: { restaurantId: strin
                     ))}
                     {filteredItems.length === 0 && (
                         <div className="col-span-full py-20 text-center flex flex-col items-center opacity-40">
-                            <span className="text-6xl mb-4 grayscale">🍽️</span>
+                            <span className="text-6xl mb-4 grayscale animate-pulse">🍽️</span>
                             <p className="text-xl font-medium">No items found</p>
                             <p className="text-sm">Try a different search or category</p>
                         </div>
@@ -308,7 +310,7 @@ export const NewOrderPanel = ({ restaurantId, showToast }: { restaurantId: strin
             {/* Right: Cart & Details (35%) */}
             <div className="w-full lg:w-[35%] flex flex-col glass-panel rounded-3xl overflow-hidden border-white/5 bg-slate-900/80 shadow-2xl relative z-10">
                 {/* Decorative background for cart */}
-                <div className="absolute top-0 right-0 w-full h-full bg-gradient-to-b from-emerald-500/5 to-transparent pointer-events-none"></div>
+                <div className="absolute top-0 right-0 w-full h-full bg-gradient-to-b from-indigo-500/5 to-transparent pointer-events-none"></div>
 
                 {/* Order Type Selector */}
                 <div className="p-6 border-b border-white/10 bg-black/20 space-y-6 relative z-10">
@@ -332,7 +334,7 @@ export const NewOrderPanel = ({ restaurantId, showToast }: { restaurantId: strin
                             <div className="relative">
                                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 z-10 pointer-events-none">🪑</span>
                                 <select
-                                    className="input-field w-full pl-11 appearance-none cursor-pointer bg-slate-900 text-white border-slate-700 focus:border-emerald-500/50 [&>option]:bg-slate-900 [&>option]:text-white [&>option:checked]:bg-emerald-600 [&>option:checked]:text-white"
+                                    className="input-field w-full pl-11 appearance-none cursor-pointer bg-slate-900 text-white border-slate-700 focus:border-emerald-500/50 [&>option]:bg-slate-900 [&>option]:text-white [&>option:checked]:bg-emerald-600 [&>option:checked]:text-white font-bold"
                                     value={tableId || ''}
                                     onChange={(e) => setTableId(e.target.value)}
                                 >
@@ -372,38 +374,38 @@ export const NewOrderPanel = ({ restaurantId, showToast }: { restaurantId: strin
                 {/* Cart Items */}
                 <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar relative z-10">
                     <div className="flex justify-between items-center px-2 mb-2">
-                        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Current Items</h3>
-                        <span className="text-xs bg-emerald-500/10 text-emerald-500 px-2 py-1 rounded border border-emerald-500/20 font-bold">{cart.length}</span>
+                        <h3 className="text-[10px] font-black uppercase tracking-widest text-gray-400">Current Items</h3>
+                        <span className="text-xs bg-emerald-500/10 text-emerald-500 px-2 py-1 rounded-full border border-emerald-500/20 font-bold">{cart.length}</span>
                     </div>
 
                     {cart.length === 0 ? (
                         <div className="h-full flex flex-col items-center justify-center text-gray-600 opacity-60">
-                            <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center mb-4 border border-dashed border-white/10">
-                                <span className="text-3xl grayscale">🛒</span>
+                            <div className="w-24 h-24 rounded-full bg-white/5 flex items-center justify-center mb-6 border border-dashed border-white/10 animate-pulse">
+                                <span className="text-4xl grayscale">🛒</span>
                             </div>
-                            <p className="font-medium">Cart is empty</p>
-                            <p className="text-sm">Ready to take orders</p>
+                            <p className="font-bold text-lg">Cart is empty</p>
+                            <p className="text-xs uppercase tracking-wider font-bold">Ready to take orders</p>
                         </div>
                     ) : (
                         cart.map((item, idx) => (
-                            <div key={`${item.id}-${idx}`} className="bg-slate-900/50 p-4 rounded-xl flex items-center justify-between border border-white/5 animate-in fade-in slide-in-from-right-4 group hover:border-emerald-500/30 transition-all shadow-sm">
+                            <div key={`${item.id}-${idx}`} className="bg-slate-900/50 p-4 rounded-xl flex items-center justify-between border border-white/5 animate-in fade-in slide-in-from-right-4 group hover:border-emerald-500/30 transition-all shadow-sm hover:shadow-md">
                                 <div className="flex-1">
                                     <div className="font-bold text-white group-hover:text-emerald-200 transition-colors text-sm">{item.name}</div>
-                                    <div className="text-xs text-gray-400 font-mono mt-1 flex gap-2">
-                                        <span className="text-emerald-400">₹{item.price}</span>
-                                        <span>x {item.quantity}</span>
-                                        <span className="text-gray-600">| Full</span>
+                                    <div className="text-xs text-gray-400 font-mono mt-1 flex gap-2 items-center">
+                                        <span className="text-emerald-400 font-bold">₹{item.price}</span>
+                                        <span className="w-1 h-1 bg-gray-600 rounded-full"></span>
+                                        <span>Full</span>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-1 bg-black/40 rounded-lg p-1 border border-white/10">
                                     <button
                                         onClick={() => updateQuantity(item.id, item.portion, -1)}
-                                        className="text-gray-400 hover:text-white hover:bg-white/10 w-7 h-7 flex items-center justify-center text-lg font-bold rounded-md transition-colors"
+                                        className="text-gray-400 hover:text-white hover:bg-white/10 w-8 h-8 flex items-center justify-center text-lg font-bold rounded-md transition-colors active:scale-90"
                                     >-</button>
-                                    <span className="font-bold text-white w-6 text-center text-sm">{item.quantity}</span>
+                                    <span className="font-black text-white w-8 text-center text-sm">{item.quantity}</span>
                                     <button
                                         onClick={() => updateQuantity(item.id, item.portion, 1)}
-                                        className="text-gray-400 hover:text-white hover:bg-white/10 w-7 h-7 flex items-center justify-center text-lg font-bold rounded-md transition-colors"
+                                        className="text-gray-400 hover:text-white hover:bg-white/10 w-8 h-8 flex items-center justify-center text-lg font-bold rounded-md transition-colors active:scale-90"
                                     >+</button>
                                 </div>
                             </div>
@@ -413,28 +415,28 @@ export const NewOrderPanel = ({ restaurantId, showToast }: { restaurantId: strin
 
                 {/* Footer Totals */}
                 <div className="p-6 bg-black/40 border-t border-white/10 backdrop-blur-md relative z-20">
-                    <div className="space-y-3 mb-6 bg-white/5 p-4 rounded-xl border border-white/5">
+                    <div className="space-y-3 mb-6 bg-white/5 p-4 rounded-xl border border-white/5 shadow-inner">
                         <div className="flex justify-between items-center text-gray-400 text-sm">
-                            <span>Subtotal</span>
+                            <span className="font-medium">Subtotal</span>
                             <span className="font-mono text-white">₹{totalAmount}</span>
                         </div>
                         <div className="flex justify-between items-center text-gray-400 text-sm">
-                            <span>GST (5%)</span>
+                            <span className="font-medium">GST (5%)</span>
                             <span className="font-mono text-white">₹{Math.round(totalAmount * 0.05)}</span>
                         </div>
                         <div className="border-t border-white/10 pt-3 flex justify-between items-center">
-                            <span className="text-lg font-bold text-white">Grand Total</span>
-                            <span className="text-2xl font-display font-bold text-emerald-400">₹{Math.round(totalAmount * 1.05)}</span>
+                            <span className="text-lg font-black text-white uppercase tracking-wider">Total</span>
+                            <span className="text-3xl font-display font-black text-emerald-400 drop-shadow-md">₹{Math.round(totalAmount * 1.05)}</span>
                         </div>
                     </div>
 
                     <button
                         onClick={handlePlaceOrder}
                         disabled={isSubmitting || cart.length === 0}
-                        className="w-full btn-primary py-4 text-lg shadow-xl shadow-emerald-500/10 disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed group relative overflow-hidden ring-1 ring-white/20"
+                        className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white py-4 rounded-xl text-lg shadow-xl shadow-emerald-500/20 disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed group relative overflow-hidden ring-1 ring-white/20 transition-all active:scale-95"
                     >
                         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
-                        <span className="relative z-10 flex items-center justify-center gap-2 font-black tracking-wide">
+                        <span className="relative z-10 flex items-center justify-center gap-2 font-black tracking-widest uppercase">
                             {isSubmitting ? 'Processing...' : <><span>⚡</span> CONFIRM ORDER</>}
                         </span>
                     </button>

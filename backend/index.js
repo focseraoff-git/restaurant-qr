@@ -25,6 +25,18 @@ const waitersRoutes = require('./routes/waiters.routes');
 const paymentsRoutes = require('./routes/payments.routes');
 const tablesRoutes = require('./routes/tables.routes');
 const restaurantsRoutes = require('./routes/restaurants.routes');
+const staffRoutes = require('./routes/staff.routes');
+const attendanceRoutes = require('./routes/attendance.routes');
+const advancesRoutes = require('./routes/advances.routes');
+const payrollRoutes = require('./routes/payroll.routes');
+const vendorsRoutes = require('./routes/vendors.routes');
+const inventoryRoutes = require('./routes/inventory.routes');
+const movementsRoutes = require('./routes/movements.routes');
+const purchasesRoutes = require('./routes/purchases.routes');
+const billingRoutes = require('./routes/billing.routes');
+const khataRoutes = require('./routes/khata.routes');
+const cancellationsRoutes = require('./routes/cancellations.routes');
+const offersRoutes = require('./routes/offers.routes');
 
 console.log('Registering routes...');
 app.use('/api/restaurants', restaurantsRoutes);
@@ -33,6 +45,18 @@ app.use('/api/menu', menuRoutes);
 app.use('/api/waiters', waitersRoutes);
 app.use('/api/payments', paymentsRoutes);
 app.use('/api/tables', tablesRoutes);
+app.use('/api/staff', staffRoutes);
+app.use('/api/attendance', attendanceRoutes);
+app.use('/api/advances', advancesRoutes);
+app.use('/api/payroll', payrollRoutes);
+app.use('/api/vendors', vendorsRoutes);
+app.use('/api/inventory', inventoryRoutes);
+app.use('/api/movements', movementsRoutes);
+app.use('/api/purchases', purchasesRoutes);
+app.use('/api/billing', billingRoutes);
+app.use('/api/khata', khataRoutes);
+app.use('/api/cancellations', cancellationsRoutes);
+app.use('/api/offers', offersRoutes);
 
 app.get('/', (req, res) => {
   res.send('Restaurant QR System API is running');

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom'; // Added useNavigate
+import { LogoutButton } from '../components/auth/LogoutButton';
 import { NewOrderPanel } from '../components/counter/NewOrderPanel';
 import { LiveOrdersBoard } from '../components/counter/LiveOrdersBoard';
 import { OrderHistory } from '../components/counter/OrderHistory';
@@ -43,6 +44,7 @@ const ConfirmModal = ({ isOpen, onClose, onConfirm, title, message, type = 'dang
 
 export const CounterDashboard = () => {
     const { restaurantId } = useParams();
+    const navigate = useNavigate(); // Added for back navigation consistency
     const [activeTab, setActiveTab] = useState<'new' | 'live' | 'history'>('new');
     const { setRestaurantId } = useStore();
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
@@ -76,35 +78,44 @@ export const CounterDashboard = () => {
             <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-emerald-900/10 rounded-full blur-[100px] pointer-events-none"></div>
 
             {/* Top Navigation Bar */}
-            <header className="glass-nav px-8 py-5 flex justify-between items-center sticky top-0 z-30 mb-6 shrink-0">
+            <header className="glass-nav px-8 py-5 flex justify-between items-center sticky top-0 z-30 mb-6 shrink-0 backdrop-blur-md bg-slate-900/80 border-b border-white/5">
                 <div className="flex items-center gap-6">
-                    <h1 className="text-2xl font-display font-bold text-white tracking-tight flex items-center gap-2">
-                        <span className="text-3xl">🖥️</span> Counter<span className="text-emerald-400">OS</span>
+                    {/* Back Button added for consistency */}
+                    <button onClick={() => navigate(-1)} className="text-gray-400 hover:text-white transition-colors bg-white/5 p-2 rounded-xl hover:bg-white/10 md:hidden">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                    </button>
+
+                    <h1 className="text-2xl font-serif font-medium tracking-tight flex items-center gap-1 group cursor-default">
+                        <span className="text-white group-hover:text-emerald-50 transition-colors">Focsera</span>
+                        <span className="text-emerald-400 italic font-light relative">
+                            DineQR
+                            <span className="absolute -top-0.5 -right-1 w-1.5 h-1.5 bg-emerald-400 rounded-full blur-[1px] opacity-80 animate-pulse"></span>
+                        </span>
                     </h1>
                     <div className="h-6 w-px bg-white/10 hidden md:block"></div>
 
                     {/* Desktop Navigation */}
-                    <nav className="hidden md:flex gap-4">
+                    <nav className="hidden md:flex gap-3">
                         <button
                             onClick={() => setActiveTab('new')}
-                            className={`px-4 py-2 rounded-xl text-sm font-bold border transition-all flex items-center gap-2 ${activeTab === 'new'
-                                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30 shadow-glow-emerald'
+                            className={`px-5 py-2.5 rounded-xl text-sm font-bold border transition-all flex items-center gap-2 ${activeTab === 'new'
+                                ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white border-transparent shadow-lg shadow-emerald-500/20'
                                 : 'bg-white/5 text-gray-400 border-white/5 hover:bg-white/10 hover:text-white'}`}
                         >
                             <span>🛍️</span> New Order
                         </button>
                         <button
                             onClick={() => setActiveTab('live')}
-                            className={`px-4 py-2 rounded-xl text-sm font-bold border transition-all flex items-center gap-2 ${activeTab === 'live'
-                                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30 shadow-glow-emerald'
+                            className={`px-5 py-2.5 rounded-xl text-sm font-bold border transition-all flex items-center gap-2 ${activeTab === 'live'
+                                ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white border-transparent shadow-lg shadow-emerald-500/20'
                                 : 'bg-white/5 text-gray-400 border-white/5 hover:bg-white/10 hover:text-white'}`}
                         >
                             <span>⚡</span> Live Orders
                         </button>
                         <button
                             onClick={() => setActiveTab('history')}
-                            className={`px-4 py-2 rounded-xl text-sm font-bold border transition-all flex items-center gap-2 ${activeTab === 'history'
-                                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30 shadow-glow-emerald'
+                            className={`px-5 py-2.5 rounded-xl text-sm font-bold border transition-all flex items-center gap-2 ${activeTab === 'history'
+                                ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white border-transparent shadow-lg shadow-emerald-500/20'
                                 : 'bg-white/5 text-gray-400 border-white/5 hover:bg-white/10 hover:text-white'}`}
                         >
                             <span>📜</span> History
@@ -117,7 +128,9 @@ export const CounterDashboard = () => {
                         <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
                         LIVE SYSTEM
                     </div>
+                    <LogoutButton />
                 </div>
+
             </header>
 
             {/* Mobile Navigation (Bottom) */}
