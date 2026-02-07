@@ -292,7 +292,8 @@ export const WaiterDashboard = () => {
                 // Wait, if I use the PUT status endpoint, it only accepts status and estimated time.
                 // I need to update that endpoint to accept waiter_id or create a new one.
                 // Or I can just send waiter_id in the body and update backend route quickly.
-                waiter_id: waiterProfile.id
+                // Use the stable Staff UUID for foreign key consistency (orders -> staff(id))
+                waiter_id: waiterProfile.staff_id || waiterProfile.id
             });
 
             fetchOrders();

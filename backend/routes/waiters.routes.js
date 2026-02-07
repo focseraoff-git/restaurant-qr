@@ -94,7 +94,8 @@ router.get('/:restaurantId', async (req, res) => {
             ...s,
             full_name: s.name, // Component expects full_name
             has_login: !!s.user_id, // Helper flag
-            id: s.user_id || s.id // Prefer Auth ID if linked, else Staff UUID
+            id: s.user_id || s.id, // Prefer Auth ID if linked, else Staff UUID
+            staff_id: s.id // ALways expose the raw Staff UUID for strict foreign key checks
             // Note: Frontend might use 'id' for deletes. 
             // If user_id exists, we should probably prefer using IT for consistency with Auth operations.
         }));

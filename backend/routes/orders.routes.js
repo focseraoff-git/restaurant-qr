@@ -190,8 +190,7 @@ router.put('/:id/status', async (req, res) => {
         }
         res.json(data);
 
-        if (error) throw error;
-        res.json(data);
+
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

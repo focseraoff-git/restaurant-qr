@@ -155,7 +155,16 @@ export const LiveOrdersBoard = ({ restaurantId, showToast, setConfirmAction }: {
 
                         {/* Footer / Actions */}
                         <div className="flex gap-3 mt-auto">
-                            {order.status !== 'ready' && (
+                            {order.status === 'pending' && (
+                                <button
+                                    onClick={() => updateStatus(order.id, 'preparing')}
+                                    className="flex-1 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-amber-500/20 transition-all active:scale-95 text-xs uppercase tracking-widest border border-transparent hover:border-amber-400/50 flex items-center justify-center gap-2"
+                                >
+                                    <span>👨‍🍳</span> Start Preparing
+                                </button>
+                            )}
+
+                            {order.status === 'preparing' && (
                                 <button
                                     onClick={() => updateStatus(order.id, 'ready')}
                                     className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-blue-500/20 transition-all active:scale-95 text-xs uppercase tracking-widest border border-transparent hover:border-blue-400/50 flex items-center justify-center gap-2"
