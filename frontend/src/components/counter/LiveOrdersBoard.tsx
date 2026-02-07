@@ -279,6 +279,7 @@ export const LiveOrdersBoard = ({ restaurantId, showToast, setConfirmAction, isK
                                 updateStatus={updateStatus}
                                 setConfirmAction={setConfirmAction}
                                 onPaymentClick={() => setSelectedOrderForPayment(order.id)}
+                                onEditClick={() => onEditOrder && onEditOrder(order)}
                             />
                         ))}
                     </div>
@@ -298,6 +299,7 @@ export const LiveOrdersBoard = ({ restaurantId, showToast, setConfirmAction, isK
                                 updateStatus={updateStatus}
                                 setConfirmAction={setConfirmAction}
                                 onPaymentClick={() => setSelectedOrderForPayment(order.id)}
+                                onEditClick={() => onEditOrder && onEditOrder(order)}
                             />
                         ))}
                     </div>

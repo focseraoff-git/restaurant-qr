@@ -48,6 +48,7 @@ export const CounterDashboard = () => {
     const [activeTab, setActiveTab] = useState<'new' | 'live' | 'history'>('new');
     const { setRestaurantId } = useStore();
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
+    const [orderToEdit, setOrderToEdit] = useState<any>(null);
     const [confirmAction, setConfirmAction] = useState<{
         isOpen: boolean;
         title: string;
@@ -161,8 +162,30 @@ export const CounterDashboard = () => {
             {/* Main Content Area */}
             <main className="flex-1 overflow-hidden relative z-10 px-0 md:px-8 pb-24 md:pb-8">
                 <div className="h-full w-full max-w-7xl mx-auto">
-                    {activeTab === 'new' && <NewOrderPanel restaurantId={restaurantId || ''} showToast={showToast} />}
-                    {activeTab === 'live' && <LiveOrdersBoard restaurantId={restaurantId || ''} showToast={showToast} setConfirmAction={setConfirmAction} isKitchen={false} />}
+                    {activeTab === 'new' && (
+                        <NewOrderPanel
+                            restaurantId={restaurantId || ''}
+                            showToast={showToast}
+                            initialOrder={orderToEdit}
+                            onOrderUpdated={() => {
+                                setOrderToEdit(null);
+                                setActiveTab('live');
+                                showToast('Order Updated', 'success');
+                            }}
+                        />
+                    )}
+                    {activeTab === 'live' && (
+                        <LiveOrdersBoard
+                            restaurantId={restaurantId || ''}
+                            showToast={showToast}
+                            setConfirmAction={setConfirmAction}
+                            isKitchen={false}
+                            onEditOrder={(order) => {
+                                setOrderToEdit(order);
+                                setActiveTab('new');
+                            }}
+                        />
+                    )}
                     {activeTab === 'history' && <OrderHistory restaurantId={restaurantId || ''} showToast={showToast} />}
                 </div>
             </main>
