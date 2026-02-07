@@ -103,42 +103,13 @@ export const OrderHistory = ({ restaurantId, showToast }: { restaurantId: string
                         onClick={async () => {
                             if (!window.confirm("Clear all 'Completed' orders for this restaurant? This cannot be undone.")) return;
                             try {
-                                const res = await fetch(\`http://localhost:5000/api/orders/completed/clear?restaurantId=\${restaurantId}\`, {method: 'DELETE' });
-                    if (res.ok) {
-                        showToast('Cleared all completed orders', 'success');
+                                const res = await fetch(`http://localhost:5000/api/orders/completed/clear?restaurantId=${restaurantId}`, { method: 'DELETE' });
+                                if (res.ok) {
+                                    showToast('Cleared all completed orders', 'success');
                                     // Trigger refresh? setDateFilter to trigger effect?
                                     setDateFilter(prev => prev);
-                    window.location.reload(); // Quick refresh to ensure list is updated
+                                    window.location.reload(); // Quick refresh to ensure list is updated
                                 } else {
-                        showToast('Failed to clear', 'error');
-                                }
-                            } catch (e) {showToast('Error clearing', 'error'); }
-                        }}
-                    className="px-4 py-3 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 font-bold text-xs uppercase tracking-wider transition-all"
-                    >
-                    Clear Completed
-                </button>
-                <button
-                    onClick={async () => {
-                        if (!window.confirm("Clear all 'Cancelled' orders?")) return;
-                        try {
-                            const res = await fetch(\`http://localhost:5000/api/orders/cancelled/clear?restaurantId=\${restaurantId}\`, {method: 'DELETE' });
-                if (res.ok) {
-                    showToast('Cleared all cancelled orders', 'success');
-                window.location.reload();
-                                }
-                            } catch (e) {showToast('Error clearing', 'error'); }
-                        }}
-                className="px-4 py-3 rounded-xl bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 font-bold text-xs uppercase tracking-wider transition-all"
-                    >
-                Clear Cancelled
-            </button>
-
-            <div className="relative group">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-emerald-400 transition-colors z-10">📅</span>
-                <input
-                    type="date"
-                    className="input-field bg-slate-950 border-slate-800 focus:border-emerald-500/50 pl-11 py-3 text-white appearance-none font-bold tracking-wider rounded-xl shadow-lg hover:border-white/10 transition-colors"
                     value={dateFilter}
                     onChange={(e) => setDateFilter(e.target.value)}
                 />

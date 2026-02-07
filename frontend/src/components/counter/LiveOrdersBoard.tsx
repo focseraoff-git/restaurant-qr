@@ -18,7 +18,7 @@ interface Order {
 }
 
 // Sub-component for individual order card
-const OrderCard = ({ order, isKitchen, updateStatus, setConfirmAction, onPaymentClick }: { order: Order, isKitchen: boolean, updateStatus: any, setConfirmAction: any, onPaymentClick?: () => void }) => {
+const OrderCard = ({ order, isKitchen, updateStatus, setConfirmAction, onPaymentClick, onEditClick }: { order: Order, isKitchen: boolean, updateStatus: any, setConfirmAction: any, onPaymentClick?: () => void, onEditClick?: () => void }) => {
 
     const StatusBadge = ({ status }: { status: string }) => {
         const colors: Record<string, string> = {
@@ -128,6 +128,15 @@ const OrderCard = ({ order, isKitchen, updateStatus, setConfirmAction, onPayment
                     </button>
                 )}
 
+                {/* Edit Button (Universal) */}
+                <button
+                    onClick={onEditClick}
+                    className="px-4 py-3 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/20 rounded-xl transition-all hover:scale-105 active:scale-95 flex items-center justify-center"
+                    title="Edit Order"
+                >
+                    ✏️
+                </button>
+
                 {!isKitchen && (
                     <button
                         onClick={() => {
@@ -171,7 +180,7 @@ const PaymentModal = ({ isOpen, onClose, onConfirm }: { isOpen: boolean, onClose
     );
 };
 
-export const LiveOrdersBoard = ({ restaurantId, showToast, setConfirmAction, isKitchen = false }: { restaurantId: string, showToast: (msg: string, type?: any) => void, setConfirmAction: (action: any) => void, isKitchen?: boolean }) => {
+export const LiveOrdersBoard = ({ restaurantId, showToast, setConfirmAction, isKitchen = false, onEditOrder }: { restaurantId: string, showToast: (msg: string, type?: any) => void, setConfirmAction: (action: any) => void, isKitchen?: boolean, onEditOrder?: (order: Order) => void }) => {
 
     const [orders, setOrders] = useState<Order[]>([]);
     const [selectedOrderForPayment, setSelectedOrderForPayment] = useState<string | null>(null);
