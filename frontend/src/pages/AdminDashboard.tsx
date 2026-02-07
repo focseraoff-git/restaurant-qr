@@ -584,7 +584,7 @@ export const AdminDashboard = () => {
                                                 <thead className="text-xs font-bold uppercase text-gray-500 border-b border-white/10">
                                                     <tr>
                                                         <th className="py-4">Waiter</th>
-                                                        <th className="py-4">Delivered Qty</th>
+                                                        <th className="py-4">Items (Orders)</th>
                                                         <th className="py-4 text-right">Total Sales</th>
                                                     </tr>
                                                 </thead>
@@ -592,7 +592,7 @@ export const AdminDashboard = () => {
                                                     {stats.waiters.map((w: any) => (
                                                         <tr key={w.id}>
                                                             <td className="py-4 font-bold text-white">{w.name}</td>
-                                                            <td className="py-4">{w.count}</td>
+                                                            <td className="py-4">{w.items_count || 0} <span className="text-xs text-gray-500">({w.count} Orders)</span></td>
                                                             <td className="py-4 text-right font-mono">₹{w.total}</td>
                                                         </tr>
                                                     ))}

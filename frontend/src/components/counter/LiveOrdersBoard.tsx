@@ -16,7 +16,7 @@ interface Order {
     }[];
 }
 
-export const LiveOrdersBoard = ({ restaurantId, showToast, setConfirmAction }: { restaurantId: string, showToast: (msg: string, type?: any) => void, setConfirmAction: (action: any) => void }) => {
+export const LiveOrdersBoard = ({ restaurantId, showToast, setConfirmAction, isKitchen = false }: { restaurantId: string, showToast: (msg: string, type?: any) => void, setConfirmAction: (action: any) => void, isKitchen?: boolean }) => {
     const [orders, setOrders] = useState<Order[]>([]);
 
     const fetchOrders = useCallback(async () => {
@@ -31,6 +31,7 @@ export const LiveOrdersBoard = ({ restaurantId, showToast, setConfirmAction }: {
                 )
             `)
             .eq('restaurant_id', restaurantId)
+            // Kitchen sees all pending/preparing/ready. Counter also sees them.
             .in('status', ['pending', 'preparing', 'ready'])
             .order('created_at', { ascending: false });
 
@@ -86,8 +87,26 @@ export const LiveOrdersBoard = ({ restaurantId, showToast, setConfirmAction }: {
         );
     };
 
+    const totalActiveAmount = orders.reduce((sum, order) => sum + (order.total_amount || 0), 0);
+
     return (
         <div className="h-full overflow-y-auto p-4 md:p-8 bg-transparent relative z-10 custom-scrollbar">
+
+            {/* Counter Total Display */}
+            {!isKitchen && orders.length > 0 && (
+                <div className="mb-8 flex justify-end">
+                    <div className="bg-slate-900/80 backdrop-blur-md border border-emerald-500/30 p-4 rounded-2xl shadow-lg shadow-emerald-500/10 flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-emerald-500/20 flex items-center justify-center text-2xl">💰</div>
+                        <div>
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Active Orders Total</p>
+                            <p className="text-3xl font-display font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-400">
+                                ₹{totalActiveAmount.toLocaleString()}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {orders.length === 0 && (
                     <div className="col-span-full flex flex-col items-center justify-center p-32 text-gray-500 opacity-50">
@@ -138,6 +157,9 @@ export const LiveOrdersBoard = ({ restaurantId, showToast, setConfirmAction }: {
                                     {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                 </span>
                                 <StatusBadge status={order.status} />
+                                <span className="text-xs font-mono font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 mt-1">
+                                    ₹{order.total_amount}
+                                </span>
                             </div>
                         </div>
 
@@ -173,29 +195,37 @@ export const LiveOrdersBoard = ({ restaurantId, showToast, setConfirmAction }: {
                                 </button>
                             )}
 
-                            {order.status === 'ready' && (
+                            {order.status === 'ready' && !isKitchen && (
                                 <button
                                     onClick={() => updateStatus(order.id, 'completed')}
                                     className="flex-1 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-emerald-500/20 transition-all active:scale-95 text-xs uppercase tracking-widest border border-transparent hover:border-emerald-400/50 flex items-center justify-center gap-2"
                                 >
-                                    <span>✨</span> Complete
+                                    <span>💸</span> Mark Paid & Clear
                                 </button>
                             )}
 
-                            <button
-                                onClick={() => {
-                                    setConfirmAction({
-                                        isOpen: true,
-                                        title: "Cancel Order",
-                                        message: "Are you sure you want to cancel this active order?",
-                                        onConfirm: () => updateStatus(order.id, 'cancelled')
-                                    });
-                                }}
-                                className="px-4 py-3 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-xl transition-all hover:scale-105 active:scale-95"
-                                title="Cancel Order"
-                            >
-                                ✕
-                            </button>
+                            {/* Kitchen can't complete/clear, they only mark ready. But wait, if they mark ready, they are done. 
+                                User Request: "mark paid and clear in counter not in kitchen" 
+                                So Kitchen only sees "Ready" (which they clicked to get here) or nothing if it's already Ready?
+                                If status is 'ready', Kitchen sees nothing (it waits for Counter to clear).
+                            */}
+
+                            {!isKitchen && (
+                                <button
+                                    onClick={() => {
+                                        setConfirmAction({
+                                            isOpen: true,
+                                            title: "Cancel Order",
+                                            message: "Are you sure you want to cancel this active order?",
+                                            onConfirm: () => updateStatus(order.id, 'cancelled')
+                                        });
+                                    }}
+                                    className="px-4 py-3 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-xl transition-all hover:scale-105 active:scale-95"
+                                    title="Cancel Order"
+                                >
+                                    ✕
+                                </button>
+                            )}
                         </div>
                     </div>
                 ))}

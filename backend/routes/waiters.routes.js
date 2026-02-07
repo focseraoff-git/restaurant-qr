@@ -162,7 +162,7 @@ router.delete('/:id', async (req, res) => {
 
 // Update Staff (Single Table)
 router.put('/:id', async (req, res) => {
-    const { name, email, password, role, phone, salary } = req.body;
+    const { name, email, password, role, phone, salary, base_salary } = req.body;
     try {
         const id = req.params.id; // Could be Staff ID or Auth ID
 
@@ -180,7 +180,8 @@ router.put('/:id', async (req, res) => {
         if (name) staffUpdates.name = name;
         if (role) staffUpdates.role = role;
         if (phone) staffUpdates.phone = phone;
-        if (salary) staffUpdates.base_salary = salary;
+        if (salary !== undefined) staffUpdates.base_salary = salary; // Legacy
+        if (base_salary !== undefined) staffUpdates.base_salary = base_salary; // New Correct Field
 
         // Update Staff Table
         if (Object.keys(staffUpdates).length > 0) {
@@ -225,7 +226,7 @@ router.get('/:restaurantId/stats', async (req, res) => {
         // Fetch Orders
         const { data: orders, error } = await supabase
             .from('orders')
-            .select('total_amount, status, waiter_id')
+            .select('total_amount, status, waiter_id, order_items(quantity)')
             .eq('restaurant_id', req.params.restaurantId)
             .gte('created_at', startDate);
 
@@ -249,6 +250,14 @@ router.get('/:restaurantId/stats', async (req, res) => {
                 name: w.name,
                 id: w.user_id || w.id, // Frontend identifying ID
                 count: myOrders.length,
+                items_count: myOrders.reduce((totalItems, o) => {
+                    // sum quantities of all items in the order
+                    // Note: orders query above only selected 'total_amount, status, waiter_id'.
+                    // We need to fetch order_items too or join them to get accurate item counts.
+                    // The current stats query is efficient but shallow.
+                    // Let's modify the query above to include order_items(quantity).
+                    return totalItems + (o.order_items ? o.order_items.reduce((sum, item) => sum + item.quantity, 0) : 0);
+                }, 0),
                 total: myOrders.filter(o => o.status === 'completed').reduce((sum, o) => sum + o.total_amount, 0)
             };
         });

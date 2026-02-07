@@ -426,7 +426,7 @@ export const KitchenDashboard = () => {
             </div>
 
             <div className="flex gap-2 mt-3">
-                {NEXT_STATUS[order.status] && (
+                {NEXT_STATUS[order.status] && NEXT_STATUS[order.status] !== 'completed' && (
                     <button
                         onClick={() => {
                             if (NEXT_STATUS[order.status] === 'preparing') {
