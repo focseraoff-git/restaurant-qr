@@ -190,7 +190,7 @@ export const StaffDirectory = ({ restaurantId, showToast }: { restaurantId: stri
                                 required
                                 value={formData.base_salary}
                                 onChange={e => setFormData({ ...formData, base_salary: parseFloat(e.target.value) })}
-                                className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-emerald-500/50 transition-all font-bold text-emerald-400 font-mono shadow-inner"
+                                className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-emerald-500/50 transition-all font-bold text-emerald-400 font-mono shadow-inner [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                             />
                         </div>
                     </div>

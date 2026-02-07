@@ -66,7 +66,12 @@ export const NewOrderPanel = ({ restaurantId, showToast }: { restaurantId: strin
                     setItems(allItems);
                 }
 
-                if (tableRes.data) setTables(tableRes.data);
+                if (tableRes.data) {
+                    const sortedTables = tableRes.data.sort((a: any, b: any) =>
+                        a.table_number.localeCompare(b.table_number, undefined, { numeric: true })
+                    );
+                    setTables(sortedTables);
+                }
                 if (!orderType) setOrderType('takeaway');
 
             } catch (error) {

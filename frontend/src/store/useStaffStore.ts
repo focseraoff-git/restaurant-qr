@@ -155,7 +155,11 @@ export const useStaffStore = create<StaffState>((set, get) => ({
                 payroll: prevPayroll.map(p => p.id === payrollId ? { ...p, status: 'paid' } : p)
             });
 
-            await api.post(`/payroll/mark-paid/${payrollId}`);
+            await api.put(`/payroll/${payrollId}`, {
+                status: 'paid',
+                paid_at: new Date().toISOString(),
+                final_amount: prevPayroll.find(p => p.id === payrollId)?.final_amount // Ensure amount is preserved/confirmed
+            });
         } catch (err) {
             console.error('Failed to mark payroll paid', err);
             throw err;

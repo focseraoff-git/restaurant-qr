@@ -22,16 +22,13 @@ export const PayrollDashboard = ({ restaurantId, showToast }: { restaurantId: st
     const handleGenerate = async () => {
         setGenerating(true);
         try {
-            const staffRes = await api.get(`/staff/${restaurantId}`);
-            const activeStaff = staffRes.data.filter((s: any) => s.status === 'active');
-
-            await Promise.all(activeStaff.map((s: any) =>
-                api.post('/payroll/generate', { staff_id: s.id, month })
-            ));
+            // Backend handles generation for all active staff in one go
+            await api.post('/payroll/generate', { restaurantId, month });
 
             showToast(`Payroll generated for ${month}`, 'success');
             // Store will auto-update via realtime
         } catch (err) {
+            console.error(err);
             showToast('Failed to generate payroll', 'error');
         } finally {
             setGenerating(false);

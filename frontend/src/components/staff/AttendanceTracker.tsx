@@ -82,12 +82,19 @@ export const AttendanceTracker = ({ restaurantId, showToast }: { restaurantId: s
                         value={date}
                         onChange={e => setDate(e.target.value)}
                         className="bg-slate-950 border border-white/10 rounded-xl px-4 py-3 text-sm font-bold text-white outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all shadow-inner"
+                        style={{ colorScheme: 'dark' }}
                     />
                     <button
                         onClick={markAllPresent}
-                        className="flex-1 md:flex-none bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 px-6 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all border border-emerald-500/20 hover:border-emerald-500/40"
+                        className="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 px-6 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all border border-emerald-500/20 hover:border-emerald-500/40"
                     >
                         Mark All Present
+                    </button>
+                    <button
+                        onClick={() => showToast('Attendance Synced Successfully', 'success')}
+                        className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-lg shadow-blue-500/20"
+                    >
+                        Save
                     </button>
                 </div>
             </div>

@@ -139,7 +139,7 @@ export const AdvanceTracker = ({ showToast }: { showToast: any }) => {
                                 required
                                 value={formData.amount}
                                 onChange={e => setFormData({ ...formData, amount: parseFloat(e.target.value) })}
-                                className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-red-500/50 transition-all font-bold"
+                                className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-red-500/50 transition-all font-bold [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                             />
                         </div>
                     </div>
@@ -152,6 +152,7 @@ export const AdvanceTracker = ({ showToast }: { showToast: any }) => {
                                 value={formData.date}
                                 onChange={e => setFormData({ ...formData, date: e.target.value })}
                                 className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-red-500/50 transition-all font-bold"
+                                style={{ colorScheme: 'dark' }}
                             />
                         </div>
                         <div>

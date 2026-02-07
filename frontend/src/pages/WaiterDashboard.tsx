@@ -144,7 +144,7 @@ export const WaiterDashboard = () => {
             setPendingOrders(pending);
 
             // Calc stats
-            const today = new Date().toISOString().split('T')[0];
+            const today = new Date().toLocaleDateString('en-CA');
             const todayOrders = history.filter(o => o.created_at >= today);
             setStats({
                 count: todayOrders.length,
