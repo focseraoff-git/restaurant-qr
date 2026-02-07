@@ -601,8 +601,17 @@ export const WaiterDashboard = () => {
 
                                 <div className="space-y-2 mb-4 bg-black/20 p-3 rounded-xl relative z-10">
                                     {order.order_items.map((item, idx) => (
-                                        <div key={idx} className="flex justify-between text-sm text-gray-300">
-                                            <span>{item.quantity}x {item.menu_items.name}</span>
+                                        <div key={idx} className="flex flex-col text-sm text-gray-300 border-b border-white/5 last:border-0 pb-1 last:pb-0 mb-1">
+                                            <div className="flex justify-between">
+                                                <span>{item.quantity}x {item.custom_name || item.menu_items?.name || 'Item'}</span>
+                                            </div>
+                                            {item.taste_preference && (
+                                                <div className="pl-4">
+                                                    <span className="text-[10px] text-amber-400 italic">
+                                                        Note: {item.taste_preference}
+                                                    </span>
+                                                </div>
+                                            )}
                                         </div>
                                     ))}
                                 </div>
@@ -636,8 +645,17 @@ export const WaiterDashboard = () => {
                                 </div>
                                 <div className="space-y-2 mb-4 bg-black/20 p-3 rounded-xl">
                                     {order.order_items.map((item, idx) => (
-                                        <div key={idx} className="flex justify-between text-sm text-gray-300">
-                                            <span>{item.quantity}x {item.menu_items.name}</span>
+                                        <div key={idx} className="flex flex-col text-sm text-gray-300 border-b border-white/5 last:border-0 pb-1 last:pb-0 mb-1">
+                                            <div className="flex justify-between">
+                                                <span>{item.quantity}x {item.custom_name || item.menu_items?.name || 'Item'}</span>
+                                            </div>
+                                            {item.taste_preference && (
+                                                <div className="pl-4">
+                                                    <span className="text-[10px] text-amber-400 italic">
+                                                        Note: {item.taste_preference}
+                                                    </span>
+                                                </div>
+                                            )}
                                         </div>
                                     ))}
                                 </div>
@@ -1373,11 +1391,20 @@ export const WaiterDashboard = () => {
                                             <div className="bg-black/20 rounded-xl p-3 mb-3 space-y-2">
                                                 <p className="text-xs text-gray-500 uppercase tracking-wider font-bold mb-2">Items</p>
                                                 {order.order_items?.map((item, idx) => (
-                                                    <div key={idx} className="flex justify-between text-sm">
-                                                        <span className="text-gray-300">
-                                                            {item.quantity}x {item.menu_items?.name || 'Item'}
-                                                        </span>
-                                                        <span className="text-gray-400 font-mono">₹{item.price_at_time * item.quantity}</span>
+                                                    <div key={idx} className="flex flex-col text-sm border-b border-white/5 last:border-0 pb-1 last:pb-0">
+                                                        <div className="flex justify-between">
+                                                            <span className="text-gray-300">
+                                                                {item.quantity}x {item.custom_name || item.menu_items?.name || 'Item'}
+                                                            </span>
+                                                            <span className="text-gray-400 font-mono">₹{item.price_at_time * item.quantity}</span>
+                                                        </div>
+                                                        {(item as any).taste_preference && (
+                                                            <div className="pl-4">
+                                                                <span className="text-[10px] text-amber-400 italic">
+                                                                    Note: {(item as any).taste_preference}
+                                                                </span>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 ))}
                                             </div>

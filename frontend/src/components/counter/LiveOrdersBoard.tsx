@@ -13,7 +13,9 @@ interface Order {
     table?: { table_number: string }; // joined
     order_items: {
         quantity: number;
-        menu_items: { name: string }
+        menu_items: { name: string };
+        custom_name?: string;
+        taste_preference?: string;
     }[];
 }
 
@@ -90,11 +92,20 @@ const OrderCard = ({ order, isKitchen, updateStatus, setConfirmAction, onPayment
             {/* Items */}
             <div className="flex-1 space-y-2 mb-6 bg-black/20 p-4 rounded-xl border border-white/5 overflow-y-auto custom-scrollbar max-h-[200px] shadow-inner">
                 {order.order_items?.map((item, idx) => (
-                    <div key={idx} className="flex justify-between items-center text-sm border-b border-white/5 last:border-0 pb-2 last:pb-0">
-                        <span className="text-gray-200 font-medium flex items-center gap-3">
-                            <span className="font-black text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 text-xs">{item.quantity}x</span>
-                            {item.menu_items?.name || 'Unknown Item'}
-                        </span>
+                    <div key={idx} className="flex flex-col text-sm border-b border-white/5 last:border-0 pb-2 last:pb-0">
+                        <div className="flex justify-between items-center">
+                            <span className="text-gray-200 font-medium flex items-center gap-3">
+                                <span className="font-black text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 text-xs">{item.quantity}x</span>
+                                {item.custom_name || item.menu_items?.name || 'Unknown Item'}
+                            </span>
+                        </div>
+                        {item.taste_preference && (
+                            <div className="pl-10 mt-1">
+                                <span className="text-[10px] text-amber-400 italic border-l-2 border-amber-500/30 pl-2 block">
+                                    {item.taste_preference}
+                                </span>
+                            </div>
+                        )}
                     </div>
                 ))}
             </div>
@@ -193,7 +204,8 @@ export const LiveOrdersBoard = ({ restaurantId, showToast, setConfirmAction, isK
                 table:tables(table_number),
                 order_items(
                     quantity,
-                    menu_items(name)
+                    menu_items(name),
+                    taste_preference
                 )
             `)
             .eq('restaurant_id', restaurantId)

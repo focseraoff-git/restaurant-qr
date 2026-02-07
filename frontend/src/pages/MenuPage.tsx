@@ -27,6 +27,12 @@ export const MenuPage = () => {
     const [activeCategory, setActiveCategory] = useState<string>('');
     const categoryRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
+    // Customization State
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [selectedItemForCustomization, setSelectedItemForCustomization] = useState<MenuItem | null>(null);
+    const [spiceLevel, setSpiceLevel] = useState('Normal');
+    const [customNote, setCustomNote] = useState('');
+
     const { addToCart, restaurantId, setRestaurantId, setTableId, cart } = useStore();
 
     const fetchMenu = async (rId: string) => {
@@ -249,13 +255,10 @@ export const MenuPage = () => {
                                                 </div>
                                                 <button
                                                     onClick={() => {
-                                                        addToCart({
-                                                            id: item.id,
-                                                            name: item.name,
-                                                            price: item.price_full,
-                                                            quantity: 1,
-                                                            portion: 'full'
-                                                        });
+                                                        setSelectedItemForCustomization(item);
+                                                        setSpiceLevel('Normal'); // Default
+                                                        setCustomNote('');
+                                                        setIsModalOpen(true);
                                                     }}
                                                     className="bg-white text-slate-950 px-5 py-2.5 rounded-xl font-bold text-sm shadow-lg hover:bg-emerald-400 transition-all transform active:scale-95 group-hover:shadow-emerald-500/20"
                                                 >
@@ -293,6 +296,78 @@ export const MenuPage = () => {
                     </button>
                 </div>
             )}
-        </div>
+            {/* Customization Modal */}
+            {
+                isModalOpen && selectedItemForCustomization && (
+                    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 sm:p-6 animate-fade-in">
+                        <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm transition-opacity" onClick={() => setIsModalOpen(false)}></div>
+                        <div className="relative bg-slate-900 border border-white/10 w-full max-w-md rounded-3xl p-6 shadow-2xl animate-slide-up transform transition-all">
+                            <div className="flex justify-between items-start mb-6">
+                                <div>
+                                    <h3 className="text-2xl font-display font-bold text-white mb-1">{selectedItemForCustomization.name}</h3>
+                                    <p className="text-emerald-400 font-bold">₹{selectedItemForCustomization.price_full}</p>
+                                </div>
+                                <button onClick={() => setIsModalOpen(false)} className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20">✕</button>
+                            </div>
+
+                            <div className="space-y-6">
+                                {/* Spice Level */}
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Spice Level</label>
+                                    <div className="grid grid-cols-4 gap-2">
+                                        {['Mild', 'Normal', 'Spicy', 'Extra'].map((level) => (
+                                            <button
+                                                key={level}
+                                                onClick={() => setSpiceLevel(level)}
+                                                className={`py-2 rounded-xl text-xs font-bold transition-all border ${spiceLevel === level
+                                                    ? 'bg-emerald-500 text-white border-emerald-500 shadow-lg shadow-emerald-900/50'
+                                                    : 'bg-slate-800 text-gray-400 border-white/5 hover:bg-slate-700'
+                                                    }`}
+                                            >
+                                                {level === 'Extra' ? '🔥 Extra' : level}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Custom Note */}
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Special Requests</label>
+                                    <textarea
+                                        value={customNote}
+                                        onChange={(e) => setCustomNote(e.target.value)}
+                                        placeholder="e.g. No onions, extra sauce..."
+                                        className="w-full bg-slate-950 border border-white/10 rounded-xl p-4 text-white placeholder-gray-600 focus:border-emerald-500 focus:outline-none transition-colors h-24 resize-none text-sm"
+                                    />
+                                </div>
+
+                                {/* Action Buttons */}
+                                <button
+                                    onClick={() => {
+                                        const tasteProfile = [];
+                                        if (spiceLevel !== 'Normal') tasteProfile.push(spiceLevel);
+                                        if (customNote.trim()) tasteProfile.push(customNote.trim());
+
+                                        addToCart({
+                                            id: selectedItemForCustomization.id!.toString(), // Ensure ID string
+                                            name: selectedItemForCustomization!.name,
+                                            price: selectedItemForCustomization!.price_full,
+                                            quantity: 1,
+                                            portion: 'full',
+                                            taste: tasteProfile.length > 0 ? tasteProfile.join(' | ') : undefined
+                                        });
+                                        setIsModalOpen(false);
+                                    }}
+                                    className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 text-white py-4 rounded-xl font-bold shadow-lg shadow-emerald-900/50 hover:shadow-emerald-500/30 transition-all transform active:scale-95 flex items-center justify-center gap-2"
+                                >
+                                    <span>Add to Cart</span>
+                                    <span>₹{selectedItemForCustomization.price_full}</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
+        </div >
     );
 };
