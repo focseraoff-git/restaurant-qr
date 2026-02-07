@@ -76,11 +76,7 @@ router.post('/', async (req, res) => {
 
 // Get Active Orders (Bill/History)
 router.get('/active', async (req, res) => {
-    const { restaurantId, customerName, tableId, tableNumber } = req.query;
-
-    if (!restaurantId || !customerName) {
-        return res.status(400).json({ error: 'Missing required parameters' });
-    }
+    const { restaurantId, customerName, tableId, tableNumber, orderIds } = req.query;
 
     try {
         let query = supabase
@@ -93,20 +89,32 @@ router.get('/active', async (req, res) => {
                 )
             `)
             .eq('restaurant_id', restaurantId)
-            // .neq('status', 'completed') // ALLOW completed orders so we can show them in History
             .order('created_at', { ascending: false });
 
-        // Logic: specific table UUID match OR fuzzy name match
-        if (tableId && tableId !== 'manual' && tableId !== 'null' && tableId !== 'undefined') {
-            query = query.eq('table_id', tableId);
-        } else {
-            // Manual Table or No Table Logic
-            // We search for exact "John" OR "John (Table 5)"
-            const namesToCheck = [customerName];
-            if (tableNumber) {
-                namesToCheck.push(`${customerName} (Table ${tableNumber})`);
+        // PRIORITY 1: Fetch by explicit Device History IDs if provided
+        if (orderIds) {
+            const idsList = orderIds.split(',').filter(Boolean);
+            if (idsList.length > 0) {
+                query = query.in('id', idsList);
+            } else {
+                // Return empty if IDs param is present but empty? Or fall through?
+                // If ids provided but empty, return empty to be safe
+                return res.json([]);
             }
-            query = query.in('customer_name', namesToCheck);
+        }
+        // PRIORITY 2: Fallback to Name/Table matching (Old Logic)
+        else {
+            if (!customerName) return res.status(400).json({ error: 'Missing required parameters (customerName or orderIds)' });
+
+            if (tableId && tableId !== 'manual' && tableId !== 'null' && tableId !== 'undefined') {
+                query = query.eq('table_id', tableId);
+            } else {
+                const namesToCheck = [customerName];
+                if (tableNumber) {
+                    namesToCheck.push(`${customerName} (Table ${tableNumber})`);
+                }
+                query = query.in('customer_name', namesToCheck);
+            }
         }
 
         const { data, error } = await query;

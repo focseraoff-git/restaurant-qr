@@ -173,7 +173,7 @@ export const MenuPage = () => {
             </div>
 
             {/* Premium Sticky Category Slider */}
-            <div className="sticky top-0 z-40 bg-slate-950/80 backdrop-blur-xl border-b border-white/5 py-4 shadow-2xl shadow-black/50">
+            <div className="sticky top-16 z-40 bg-slate-950/80 backdrop-blur-xl border-b border-white/5 py-4 shadow-2xl shadow-black/50">
                 <div className="relative">
                     {/* Hiding Scrollbar but keeping functionality */}
                     <div className="flex overflow-x-auto no-scrollbar gap-3 px-6 pb-2 items-center scroll-smooth snap-x">

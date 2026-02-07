@@ -9,15 +9,15 @@ export const LandingPage = () => {
     const [searchParams] = useSearchParams();
     const {
         setRestaurantId, setTableId, setCustomerName, setOrderType,
-        restaurantId, customerName, tableNumber, cart, resetStore
+        restaurantId, customerName, tableNumber, cart, resetSession
     } = useStore();
 
-    // Force reset if visiting Home without specific Restaurant ID (Scan Mode)
+    // Force reset session (Keep Name) if visiting Home without specific Restaurant ID
     useEffect(() => {
         if (!searchParams.get('restaurantId')) {
-            resetStore();
+            resetSession();
         }
-    }, [searchParams, resetStore]);
+    }, [searchParams, resetSession]);
 
     const [name, setName] = useState('');
     const [step, setStep] = useState(1); // 1: Name, 2: Order Type

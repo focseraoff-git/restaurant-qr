@@ -52,6 +52,7 @@ export const CartPage = () => {
 
             const res = await api.post('/orders', payload);
             console.log('Order placed:', res.data);
+            useStore.getState().addOrderId(res.data.order.id); // Save to Device History
             clearCart();
             navigate(`/success?orderId=${res.data.order.id}`);
         } catch (err) {

@@ -25,7 +25,7 @@ interface Order {
 }
 
 export const BillPage = () => {
-    const { restaurantId, customerName, tableNumber, resetStore } = useStore();
+    const { restaurantId, customerName, tableNumber, resetStore, myOrderIds } = useStore();
     const navigate = useNavigate();
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
@@ -50,14 +50,19 @@ export const BillPage = () => {
 
     const fetchOrders = () => {
         setLoading(true);
-        const namesToCheck = [customerName];
-        if (tableNumber) {
-            namesToCheck.push(`${customerName} (Table ${tableNumber})`);
+        const params: any = { restaurantId };
+
+        // Use device history IDs if available
+        if (myOrderIds && myOrderIds.length > 0) {
+            params.orderIds = myOrderIds.join(',');
+        }
+        // Fallback for migration/safety
+        if (customerName) {
+            params.customerName = customerName;
+            params.tableNumber = tableNumber;
         }
 
-        api.get(`/orders/active`, {
-            params: { restaurantId, customerName, tableNumber }
-        })
+        api.get(`/orders/active`, { params })
             .then(res => {
                 setOrders(res.data);
                 showToast('Orders updated', 'info');

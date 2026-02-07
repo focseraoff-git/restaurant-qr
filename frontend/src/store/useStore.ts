@@ -17,9 +17,10 @@ interface AppState {
     customerName: string | null;
     orderType: 'dine-in' | 'takeaway' | null;
     cart: CartItem[];
+    myOrderIds: string[]; // Device History
 
     setTableId: (id: string | null, number?: string) => void;
-    setRestaurantId: (id: string) => void;
+    setRestaurantId: (id: string | null) => void;
     setCustomerName: (name: string | null) => void;
     setOrderType: (type: 'dine-in' | 'takeaway') => void;
 
@@ -28,7 +29,9 @@ interface AppState {
     updateQuantity: (itemId: string, portion: string, delta: number) => void;
     clearCart: () => void;
     resetStore: () => void;
+    resetSession: () => void; // Keep Name
     resetOrderState: () => void;
+    addOrderId: (id: string) => void;
 }
 
 export const useStore = create<AppState>()(
@@ -40,6 +43,7 @@ export const useStore = create<AppState>()(
             customerName: null,
             orderType: null,
             cart: [],
+            myOrderIds: [],
 
             setTableId: (id, number) => set({ tableId: id, tableNumber: number || null }),
             setRestaurantId: (id) => set({ restaurantId: id }),
@@ -88,6 +92,15 @@ export const useStore = create<AppState>()(
                 tableNumber: null,
                 orderType: 'takeaway'
             }),
+            addOrderId: (id) => set((state) => ({ myOrderIds: [...state.myOrderIds, id] })),
+            resetSession: () => set({
+                cart: [],
+                // customerName: KEEP IT
+                tableId: null,
+                tableNumber: null,
+                orderType: null,
+                restaurantId: null
+            }),
         }),
         {
             name: 'restaurant-qr-storage',
@@ -101,7 +114,8 @@ export const useStore = create<AppState>()(
                 // Let's persist all for better experience unless explicit clear.
                 tableId: state.tableId,
                 tableNumber: state.tableNumber,
-                orderType: state.orderType
+                orderType: state.orderType,
+                myOrderIds: state.myOrderIds
             }),
         }
     )
