@@ -45,7 +45,7 @@ export const WaiterDashboard = () => {
 
     const [waiterProfile, setWaiterProfile] = useState<any>(null);
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState<'pool' | 'mine' | 'history' | 'menu' | 'reports' | 'allOrders'>('pool');
+    const [activeTab, setActiveTab] = useState<'pool' | 'mine' | 'settlement' | 'menu' | 'reports' | 'allOrders'>('pool');
     const [stats, setStats] = useState({ count: 0, total: 0 });
     const [error, setError] = useState<string | null>(null);
 
@@ -54,6 +54,7 @@ export const WaiterDashboard = () => {
     const [selectedItems, setSelectedItems] = useState<any[]>([]);
     const [customerName, setCustomerName] = useState<string>('');
     const [tableNumber, setTableNumber] = useState<string>('');
+    const [tables, setTables] = useState<any[]>([]); // Added tables state
     const [orderType, setOrderType] = useState<'dine-in' | 'takeaway'>('dine-in');
 
     // Reports Tab States
@@ -260,11 +261,34 @@ export const WaiterDashboard = () => {
         downloadCSV(csv, `payment_summary_${new Date().toISOString().split('T')[0]}.csv`);
     };
 
+    // Fetch Tables
+    const fetchTables = async () => {
+        if (!restaurantId) return;
+        try {
+            const cleanId = restaurantId.split('&')[0];
+            const { data } = await supabase
+                .from('tables')
+                .select('*')
+                .eq('restaurant_id', cleanId)
+                .order('table_number', { ascending: true });
+
+            if (data) {
+                const sorted = data.sort((a: any, b: any) =>
+                    a.table_number.localeCompare(b.table_number, undefined, { numeric: true })
+                );
+                setTables(sorted);
+            }
+        } catch (error) {
+            console.error('Error fetching tables:', error);
+        }
+    };
+
     // Polling
     useEffect(() => {
         if (waiterProfile) {
             fetchOrders();
             fetchMenu();
+            fetchTables();
             const interval = setInterval(fetchOrders, 3000); // Faster polling for shark tank
             return () => clearInterval(interval);
         }
@@ -350,6 +374,9 @@ export const WaiterDashboard = () => {
         setSelectedItems(prev => prev.filter(i => i.id !== itemId));
     };
 
+
+    // ... (actions)
+
     const placeWaiterOrder = async () => {
         // Validate based on order type
         if (!waiterProfile || selectedItems.length === 0) {
@@ -358,7 +385,7 @@ export const WaiterDashboard = () => {
         }
 
         if (orderType === 'dine-in' && !tableNumber) {
-            showToast('Please specify table number for dine-in orders', 'error');
+            showToast('Please select a table for dine-in orders', 'error');
             return;
         }
 
@@ -367,22 +394,26 @@ export const WaiterDashboard = () => {
 
             // Build customer name based on order type
             let finalCustomerName = customerName || 'Guest';
-            if (orderType === 'dine-in' && tableNumber) {
-                finalCustomerName = customerName || `Walk-in Customer (Table ${tableNumber})`;
+            if (orderType === 'dine-in') {
+                const selectedTable = tables.find(t => t.id === tableNumber);
+                finalCustomerName = customerName || (selectedTable ? `Table ${selectedTable.table_number} (Waiter)` : `Dine-in (Waiter)`);
             } else if (orderType === 'takeaway') {
                 finalCustomerName = customerName || 'Takeaway Customer';
             }
 
             const orderData = {
                 restaurantId: cleanId,
-                tableId: null,
+                tableId: orderType === 'dine-in' ? tableNumber : null, // Send the ID (stored in tableNumber state)
                 customerName: finalCustomerName,
                 customerPhone: null,
                 orderType: orderType,
                 items: selectedItems.map(item => ({
                     itemId: item.id,
                     quantity: item.quantity,
-                    portion: 'full'
+                    portion: 'full',
+                    // Pass name/price for potential custom usage later
+                    name: item.name,
+                    price: item.price_full
                 }))
             };
 
@@ -430,67 +461,85 @@ export const WaiterDashboard = () => {
             <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-emerald-900/10 rounded-full blur-[120px] pointer-events-none"></div>
 
             {/* Header */}
-            <header className="glass-nav px-6 py-4 sticky top-0 z-30 mb-6 w-full border-b border-white/5">
-                <div className="flex justify-between items-center max-w-lg mx-auto md:max-w-none">
-                    <div>
-                        <h1 className="text-xl font-display font-bold text-white flex items-center gap-2">
-                            👋 Hi, {waiterProfile.name.split(' ')[0]}
-                        </h1>
-                        <p className="text-xs text-emerald-400 font-bold uppercase tracking-wider">
-                            Active Shift • {stats.count} Delivered
-                        </p>
+            <header className="glass-nav px-4 py-3 md:px-6 md:py-4 sticky top-0 z-30 mb-6 w-full border-b border-white/5 backdrop-blur-xl bg-slate-900/80">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center max-w-lg mx-auto md:max-w-none gap-4">
+                    <div className="flex justify-between items-center w-full md:w-auto">
+                        <div>
+                            <h1 className="text-xl font-display font-bold text-white flex items-center gap-2">
+                                👋 Hi, {waiterProfile.name.split(' ')[0]}
+                            </h1>
+                            <p className="text-xs text-emerald-400 font-bold uppercase tracking-wider">
+                                Active Shift • {stats.count} Delivered
+                            </p>
+                        </div>
+                        {/* Mobile Logout - Visible only on small screens next to profile */}
+                        <div className="md:hidden">
+                            <LogoutButton />
+                        </div>
                     </div>
-                    <div className="flex gap-2">
-                        <button
-                            onClick={() => setActiveTab('pool')}
-                            className={`p-3 rounded-xl transition-all relative ${activeTab === 'pool' ? 'bg-emerald-500 text-white shadow-glow-emerald' : 'bg-white/5 text-gray-400'}`}
-                        >
-                            🔔
-                            {readyOrders.length > 0 && (
-                                <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-bold flex items-center justify-center rounded-full animate-bounce">
-                                    {readyOrders.length}
-                                </span>
-                            )}
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('mine')}
-                            className={`p-3 rounded-xl transition-all relative ${activeTab === 'mine' ? 'bg-blue-500 text-white shadow-lg' : 'bg-white/5 text-gray-400'}`}
-                        >
-                            🥥
-                            {myOrders.length > 0 && (
-                                <span className="absolute -top-1 -right-1 w-5 h-5 bg-blue-400 text-white text-[10px] font-bold flex items-center justify-center rounded-full">
-                                    {myOrders.length}
-                                </span>
-                            )}
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('history')}
-                            className={`p-3 rounded-xl transition-all relative ${activeTab === 'history' ? 'bg-white/20 text-white' : 'bg-white/5 text-gray-400'}`}
-                        >
-                            📜
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('menu')}
-                            className={`p-3 rounded-xl transition-all relative ${activeTab === 'menu' ? 'bg-emerald-500 text-white shadow-glow-emerald' : 'bg-white/5 text-gray-400'}`}
-                        >
-                            🍽️
-                        </button>
-                        <button
-                            onClick={() => {
-                                setActiveTab('reports');
-                                if (allOrders.length === 0) fetchAllOrders();
-                            }}
-                            className={`p-3 rounded-xl transition-all relative ${activeTab === 'reports' ? 'bg-emerald-500 text-white shadow-glow-emerald' : 'bg-white/5 text-gray-400'}`}
-                        >
-                            📊
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('allOrders')}
-                            className={`p-3 rounded-xl transition-all relative ${activeTab === 'allOrders' ? 'bg-emerald-500 text-white shadow-glow-emerald' : 'bg-white/5 text-gray-400'}`}
-                        >
-                            📋
-                        </button>
-                        <LogoutButton />
+
+                    <div className="w-full md:w-auto overflow-x-auto pb-2 md:pb-0 -mx-4 px-4 md:mx-0 md:px-0">
+                        <div className="flex gap-3 md:gap-2 min-w-max">
+                            <button
+                                onClick={() => setActiveTab('pool')}
+                                className={`p-3 rounded-xl transition-all relative flex items-center gap-2 ${activeTab === 'pool' ? 'bg-emerald-500 text-white shadow-glow-emerald' : 'bg-white/5 text-gray-400'}`}
+                            >
+                                <span className="text-xl">🔔</span>
+                                <span className="text-xs font-bold uppercase">Ready</span>
+                                {readyOrders.length > 0 && (
+                                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-bold flex items-center justify-center rounded-full animate-bounce">
+                                        {readyOrders.length}
+                                    </span>
+                                )}
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('mine')}
+                                className={`p-3 rounded-xl transition-all relative flex items-center gap-2 ${activeTab === 'mine' ? 'bg-blue-500 text-white shadow-lg' : 'bg-white/5 text-gray-400'}`}
+                            >
+                                <span className="text-xl">🥥</span>
+                                <span className="text-xs font-bold uppercase">Active</span>
+                                {myOrders.length > 0 && (
+                                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-blue-400 text-white text-[10px] font-bold flex items-center justify-center rounded-full">
+                                        {myOrders.length}
+                                    </span>
+                                )}
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('menu')}
+                                className={`p-3 rounded-xl transition-all relative flex items-center gap-2 ${activeTab === 'menu' ? 'bg-emerald-500 text-white shadow-glow-emerald' : 'bg-white/5 text-gray-400'}`}
+                            >
+                                <span className="text-xl">🍽️</span>
+                                <span className="text-xs font-bold uppercase">Menu</span>
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('settlement')}
+                                className={`p-3 rounded-xl transition-all relative flex items-center gap-2 ${activeTab === 'settlement' ? 'bg-white/20 text-white' : 'bg-white/5 text-gray-400'}`}
+                            >
+                                <span className="text-xl">💰</span>
+                                <span className="text-xs font-bold uppercase">Settlement</span>
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setActiveTab('reports');
+                                    if (allOrders.length === 0) fetchAllOrders();
+                                }}
+                                className={`p-3 rounded-xl transition-all relative flex items-center gap-2 ${activeTab === 'reports' ? 'bg-emerald-500 text-white shadow-glow-emerald' : 'bg-white/5 text-gray-400'}`}
+                            >
+                                <span className="text-xl">📊</span>
+                                <span className="text-xs font-bold uppercase">Reports</span>
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('allOrders')}
+                                className={`p-3 rounded-xl transition-all relative flex items-center gap-2 ${activeTab === 'allOrders' ? 'bg-emerald-500 text-white shadow-glow-emerald' : 'bg-white/5 text-gray-400'}`}
+                            >
+                                <span className="text-xl">📋</span>
+                                <span className="text-xs font-bold uppercase">All</span>
+                            </button>
+                            {/* Desktop Logout */}
+                            <div className="hidden md:block">
+                                <LogoutButton />
+                            </div>
+                        </div>
                     </div>
                 </div>
             </header>
@@ -587,39 +636,87 @@ export const WaiterDashboard = () => {
                     </div>
                 )}
 
-                {/* HISTORY TAB */}
-                {activeTab === 'history' && (
+                {/* SETTLEMENT TAB (Renamed from History) */}
+                {activeTab === 'settlement' && (
                     <div className="space-y-6 animate-fade-in">
+                        {/* Summary Cards */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="glass-panel p-4 rounded-2xl border border-emerald-500/20 bg-emerald-900/10">
+                                <p className="text-xs text-emerald-400 font-bold uppercase tracking-wider mb-1">Total Delivered</p>
+                                <p className="text-2xl font-black text-white">{stats.count}</p>
+                                <p className="text-[10px] text-emerald-500/60 mt-1">Orders Completed</p>
+                            </div>
+                            <div className="glass-panel p-4 rounded-2xl border border-blue-500/20 bg-blue-900/10">
+                                <p className="text-xs text-blue-400 font-bold uppercase tracking-wider mb-1">Currently Serving</p>
+                                <p className="text-2xl font-black text-white">{myOrders.length}</p>
+                                <p className="text-[10px] text-blue-500/60 mt-1">Orders Taken</p>
+                            </div>
+                        </div>
+
+                        {/* Detailed Revenue Breakdown */}
                         <div className="glass-panel p-6 rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900 to-slate-800">
-                            <h3 className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-4">Today's Settlement</h3>
-                            <div className="flex justify-between items-end border-b border-white/10 pb-4 mb-4">
-                                <div>
-                                    <span className="text-3xl font-mono font-bold text-emerald-400">₹{stats.total}</span>
-                                    <p className="text-xs text-gray-500">Total Revenue Collected</p>
+                            <h3 className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-4">Today's Collections</h3>
+
+                            <div className="space-y-4 mb-6">
+                                <div className="flex justify-between items-center bg-white/5 p-3 rounded-xl border border-white/5">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center text-xl">💵</div>
+                                        <div>
+                                            <p className="font-bold text-gray-200">Cash</p>
+                                            <p className="text-xs text-gray-500">Collected by Hand</p>
+                                        </div>
+                                    </div>
+                                    <span className="text-xl font-mono font-bold text-green-400">
+                                        ₹{orders.filter(o => (o as any).payment_method === 'Cash').reduce((sum, o) => sum + o.total_amount, 0)}
+                                    </span>
                                 </div>
-                                <div className="text-right">
-                                    <span className="text-2xl font-bold text-white">{stats.count}</span>
-                                    <p className="text-xs text-gray-500">Orders Delivered</p>
+
+                                <div className="flex justify-between items-center bg-white/5 p-3 rounded-xl border border-white/5">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center text-xl">📱</div>
+                                        <div>
+                                            <p className="font-bold text-gray-200">UPI / Online</p>
+                                            <p className="text-xs text-gray-500">Digital Payments</p>
+                                        </div>
+                                    </div>
+                                    <span className="text-xl font-mono font-bold text-blue-400">
+                                        ₹{orders.filter(o => (o as any).payment_method === 'UPI' || (o as any).payment_method === 'Online').reduce((sum, o) => sum + o.total_amount, 0)}
+                                    </span>
                                 </div>
                             </div>
-                            <button onClick={() => window.print()} className="w-full py-3 bg-white/5 hover:bg-white/10 rounded-xl font-bold text-sm text-gray-300 border border-white/5">
-                                🖨️ Print Settlement Bill
-                            </button>
+
+                            <div className="flex justify-between items-end border-t border-white/10 pt-4">
+                                <div>
+                                    <p className="text-xs text-gray-500 uppercase tracking-widest">Total Revenue</p>
+                                    <span className="text-3xl font-mono font-bold text-white">₹{stats.total}</span>
+                                </div>
+                                <button onClick={() => window.print()} className="px-4 py-2 bg-white/5 hover:bg-white/10 rounded-lg font-bold text-xs text-gray-300 border border-white/5 transition-all">
+                                    🖨️ Print Report
+                                </button>
+                            </div>
                         </div>
 
                         <div className="flex justify-between items-center">
-                            <h2 className="text-sm font-bold text-gray-400 uppercase">Recent History</h2>
+                            <h2 className="text-sm font-bold text-gray-400 uppercase">Settlement History</h2>
                             <button onClick={clearHistory} className="text-xs text-red-400 hover:text-red-300">Clear View</button>
                         </div>
-                        {orders.map(order => (
-                            <div key={order.id} className="glass-panel p-4 rounded-xl border border-white/5 opacity-60 hover:opacity-100 transition-opacity">
-                                <div className="flex justify-between">
-                                    <span className="font-bold text-gray-300">Table {order.tables?.table_number}</span>
-                                    <span className="font-mono text-emerald-500">₹{order.total_amount}</span>
+
+                        <div className="space-y-3">
+                            {orders.map(order => (
+                                <div key={order.id} className="glass-panel p-4 rounded-xl border border-white/5 flex justify-between items-center">
+                                    <div>
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-bold text-gray-300">Table {order.tables?.table_number || 'N/A'}</span>
+                                            <span className={`text-[10px] px-2 py-0.5 rounded border ${(order as any).payment_method === 'Cash' ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-blue-500/10 text-blue-400 border-blue-500/20'}`}>
+                                                {(order as any).payment_method || 'Unknown'}
+                                            </span>
+                                        </div>
+                                        <p className="text-xs text-gray-500 mt-1">{new Date(order.created_at).toLocaleTimeString()}</p>
+                                    </div>
+                                    <span className="font-mono text-emerald-500 font-bold">₹{order.total_amount}</span>
                                 </div>
-                                <p className="text-xs text-gray-500 mt-1">{new Date(order.created_at).toLocaleTimeString()}</p>
-                            </div>
-                        ))}
+                            ))}
+                        </div>
                     </div>
                 )}
 
@@ -662,23 +759,34 @@ export const WaiterDashboard = () => {
 
                             <div className="space-y-3">
                                 {orderType === 'dine-in' && (
-                                    <input
-                                        type="text"
-                                        placeholder="Table Number *"
-                                        value={tableNumber}
-                                        onChange={(e) => setTableNumber(e.target.value)}
-                                        className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:border-emerald-500 focus:outline-none transition-colors"
-                                    />
+                                    <div className="relative">
+                                        <select
+                                            value={tableNumber} // We'll store ID in tableNumber state variable for now or rename it
+                                            onChange={(e) => setTableNumber(e.target.value)}
+                                            className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:border-emerald-500 focus:outline-none transition-colors appearance-none"
+                                        >
+                                            <option value="" className="bg-slate-900 text-gray-500">Select Table *</option>
+                                            {tables.map((t: any) => (
+                                                <option key={t.id} value={t.id} className="bg-slate-900 text-white">
+                                                    Table {t.table_number}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500">
+                                            ▼
+                                        </div>
+                                    </div>
                                 )}
                                 <input
                                     type="text"
-                                    placeholder="Customer Name (optional)"
+                                    placeholder="Customer Name (Optional)"
                                     value={customerName}
                                     onChange={(e) => setCustomerName(e.target.value)}
                                     className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:border-emerald-500 focus:outline-none transition-colors"
                                 />
                             </div>
                         </div>
+
 
                         {/* Complete Menu Display - All Categories */}
                         <div className="space-y-12 relative">
@@ -837,7 +945,8 @@ export const WaiterDashboard = () => {
 
                                                         <div className="relative z-10 flex gap-6 p-5">
                                                             {/* Premium Food Image with Advanced Effects */}
-                                                            <div className="w-36 h-36 flex-shrink-0 rounded-2xl overflow-hidden shadow-2xl relative ring-2 ring-white/5 group-hover:ring-emerald-500/30 transition-all">
+                                                            {/* Premium Food Image with Advanced Effects */}
+                                                            <div className="w-28 h-28 sm:w-36 sm:h-36 flex-shrink-0 rounded-2xl overflow-hidden shadow-2xl relative ring-2 ring-white/5 group-hover:ring-emerald-500/30 transition-all">
                                                                 {/* Image Gradient Overlay */}
                                                                 <div className="absolute inset-0 bg-gradient-to-tr from-black/60 via-black/20 to-transparent z-10"></div>
 
@@ -862,7 +971,7 @@ export const WaiterDashboard = () => {
                                                             {/* Item Details with Enhanced Typography */}
                                                             <div className="flex-1 flex flex-col justify-between">
                                                                 <div>
-                                                                    <h4 className="font-display font-bold text-2xl text-gray-50 leading-tight group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-emerald-200 group-hover:to-teal-200 transition-all mb-2">
+                                                                    <h4 className="font-display font-bold text-xl sm:text-2xl text-gray-50 leading-tight group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-emerald-200 group-hover:to-teal-200 transition-all mb-2">
                                                                         {item.name}
                                                                     </h4>
                                                                     <p className="text-gray-400 text-sm leading-relaxed line-clamp-2 font-light">
@@ -1270,6 +1379,6 @@ export const WaiterDashboard = () => {
             </Modal>
 
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
-        </div>
+        </div >
     );
 };

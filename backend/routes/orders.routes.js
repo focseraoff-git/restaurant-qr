@@ -4,40 +4,70 @@ const supabase = require('../config/supabaseClient');
 
 // Create Order
 router.post('/', async (req, res) => {
-    const { restaurantId, tableId, items, customerName, customerPhone, orderType = 'dine-in' } = req.body;
+    const { restaurantId, tableId, items, customerName, customerPhone, orderType = 'dine-in', orderNote } = req.body;
 
     if (!items || items.length === 0) {
         return res.status(400).json({ error: 'No items in order' });
     }
 
     try {
-        // 1. Fetch item details to calculate total and verify prices
-        const itemIds = items.map(i => i.itemId);
-        const { data: menuItems, error: itemsError } = await supabase
-            .from('menu_items')
-            .select('id, price_full, price_half, name')
-            .in('id', itemIds);
 
-        if (itemsError) throw itemsError;
+        // 1. Separate Menu Items and Custom Items
+        const menuItemsInput = items.filter(i => i.itemId);
+        const customItemsInput = items.filter(i => !i.itemId);
+
+        // 2. Fetch details for Menu Items
+        let menuItemsDB = [];
+        if (menuItemsInput.length > 0) {
+            const itemIds = menuItemsInput.map(i => i.itemId);
+            const { data, error: itemsError } = await supabase
+                .from('menu_items')
+                .select('id, price_full, price_half, name')
+                .in('id', itemIds);
+
+            if (itemsError) throw itemsError;
+            menuItemsDB = data;
+        }
 
         let totalAmount = 0;
-        const orderItemsData = items.map(item => {
-            const menuItem = menuItems.find(mi => mi.id === item.itemId);
+        const orderItemsData = [];
+
+        // Process Menu Items
+        for (const item of menuItemsInput) {
+            const menuItem = menuItemsDB.find(mi => mi.id === item.itemId);
             if (!menuItem) throw new Error(`Item ${item.itemId} not found`);
 
-            const price = item.portion === 'half' && menuItem.price_half ? menuItem.price_half : menuItem.price_full;
+            const price = item.price || (item.portion === 'half' && menuItem.price_half ? menuItem.price_half : menuItem.price_full);
             totalAmount += price * item.quantity;
 
-            return {
+            orderItemsData.push({
                 item_id: item.itemId,
                 quantity: item.quantity,
                 portion: item.portion || 'full',
                 taste_preference: item.tastePreference,
-                price_at_time: price
-            };
-        });
+                price_at_time: price,
+                custom_name: null // Standard item
+            });
+        }
 
-        // 2. Create Order
+        // Process Custom Items
+        for (const item of customItemsInput) {
+            if (!item.name || !item.price) throw new Error('Custom items must have name and price');
+
+            const price = parseFloat(item.price);
+            totalAmount += price * item.quantity;
+
+            orderItemsData.push({
+                item_id: null, // No menu reference
+                quantity: item.quantity,
+                portion: 'custom',
+                taste_preference: item.tastePreference,
+                price_at_time: price,
+                custom_name: item.name
+            });
+        }
+
+        // 3. Create Order
         const { data: orderData, error: orderError } = await supabase
             .from('orders')
             .insert({
@@ -47,7 +77,8 @@ router.post('/', async (req, res) => {
                 order_type: orderType,
                 total_amount: totalAmount,
                 customer_name: customerName,
-                customer_phone: customerPhone
+                customer_phone: customerPhone,
+                order_note: orderNote
             })
             .select()
             .single();
@@ -184,6 +215,7 @@ router.put('/:id/status', async (req, res) => {
         if (status) updateData.status = status;
         if (estimated_prep_time) updateData.estimated_prep_time = estimated_prep_time;
         if (waiter_id) updateData.waiter_id = waiter_id;
+        if (req.body.payment_method) updateData.payment_method = req.body.payment_method;
 
         const { data, error } = await supabase
             .from('orders')
@@ -216,6 +248,109 @@ router.put('/:id', async (req, res) => {
         if (error) throw error;
         res.json(data[0]);
     } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Replace Order Items (Edit Order)
+router.put('/:id/replace', async (req, res) => {
+    const { items, orderNote } = req.body;
+    const orderId = req.params.id;
+
+    if (!items || items.length === 0) {
+        return res.status(400).json({ error: 'No items in order' });
+    }
+
+    try {
+        // 1. Separate Menu Items and Custom Items
+        const menuItemsInput = items.filter(i => i.itemId);
+        const customItemsInput = items.filter(i => !i.itemId);
+
+        // 2. Fetch details for Menu Items
+        let menuItemsDB = [];
+        if (menuItemsInput.length > 0) {
+            const itemIds = menuItemsInput.map(i => i.itemId);
+            const { data, error: itemsError } = await supabase
+                .from('menu_items')
+                .select('id, price_full, price_half, name')
+                .in('id', itemIds);
+
+            if (itemsError) throw itemsError;
+            menuItemsDB = data;
+        }
+
+        let totalAmount = 0;
+        const orderItemsData = [];
+
+        // Process Menu Items
+        for (const item of menuItemsInput) {
+            const menuItem = menuItemsDB.find(mi => mi.id === item.itemId);
+            if (!menuItem) throw new Error(`Item ${item.itemId} not found`);
+
+            const price = item.price || (item.portion === 'half' && menuItem.price_half ? menuItem.price_half : menuItem.price_full);
+            totalAmount += price * item.quantity;
+
+            orderItemsData.push({
+                order_id: orderId,
+                item_id: item.itemId,
+                quantity: item.quantity,
+                portion: item.portion || 'full',
+                taste_preference: item.tastePreference, // Item Note
+                price_at_time: price,
+                custom_name: null
+            });
+        }
+
+        // Process Custom Items
+        for (const item of customItemsInput) {
+            if (!item.name || !item.price) throw new Error('Custom items must have name and price');
+
+            const price = parseFloat(item.price);
+            totalAmount += price * item.quantity;
+
+            orderItemsData.push({
+                order_id: orderId,
+                item_id: null,
+                quantity: item.quantity,
+                portion: 'custom',
+                taste_preference: item.tastePreference, // Item Note
+                price_at_time: price,
+                custom_name: item.name
+            });
+        }
+
+        // 3. Transaction-like update
+        // A. Delete existing items
+        const { error: deleteError } = await supabase
+            .from('order_items')
+            .delete()
+            .eq('order_id', orderId);
+
+        if (deleteError) throw deleteError;
+
+        // B. Update Order Total & Note
+        const { error: updateOrderError } = await supabase
+            .from('orders')
+            .update({
+                total_amount: totalAmount,
+                order_note: orderNote,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', orderId);
+
+        if (updateOrderError) throw updateOrderError;
+
+        // C. Insert New Items
+        const { error: insertItemsError } = await supabase
+            .from('order_items')
+            .insert(orderItemsData);
+
+        if (insertItemsError) throw insertItemsError;
+
+        res.json({ success: true, message: 'Order updated successfully' });
+
+    } catch (error) {
+        console.error('Error replacing order:', error);
         res.status(500).json({ error: error.message });
     }
 });

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../utils/supabaseClient';
+import { Modal } from '../Modal';
 
 interface Order {
     id: string;
@@ -17,7 +18,7 @@ interface Order {
 }
 
 // Sub-component for individual order card
-const OrderCard = ({ order, isKitchen, updateStatus, setConfirmAction }: { order: Order, isKitchen: boolean, updateStatus: any, setConfirmAction: any }) => {
+const OrderCard = ({ order, isKitchen, updateStatus, setConfirmAction, onPaymentClick }: { order: Order, isKitchen: boolean, updateStatus: any, setConfirmAction: any, onPaymentClick?: () => void }) => {
 
     const StatusBadge = ({ status }: { status: string }) => {
         const colors: Record<string, string> = {
@@ -120,7 +121,7 @@ const OrderCard = ({ order, isKitchen, updateStatus, setConfirmAction }: { order
 
                 {order.status === 'ready' && !isKitchen && (
                     <button
-                        onClick={() => updateStatus(order.id, 'completed')}
+                        onClick={onPaymentClick}
                         className="flex-1 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-emerald-500/20 transition-all active:scale-95 text-xs uppercase tracking-widest border border-transparent hover:border-emerald-400/50 flex items-center justify-center gap-2"
                     >
                         <span>💸</span> Paid
@@ -148,9 +149,32 @@ const OrderCard = ({ order, isKitchen, updateStatus, setConfirmAction }: { order
     );
 }
 
+// Payment Modal Component
+const PaymentModal = ({ isOpen, onClose, onConfirm }: { isOpen: boolean, onClose: () => void, onConfirm: (method: string) => void }) => {
+    return (
+        <Modal isOpen={isOpen} onClose={onClose} title="Select Payment Method">
+            <div className="space-y-4">
+                <button
+                    onClick={() => { onConfirm('Cash'); onClose(); }}
+                    className="w-full py-4 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 rounded-xl flex items-center justify-center gap-3 text-emerald-400 font-bold text-lg transition-all"
+                >
+                    <span className="text-2xl">💵</span> Cash
+                </button>
+                <button
+                    onClick={() => { onConfirm('UPI'); onClose(); }}
+                    className="w-full py-4 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 rounded-xl flex items-center justify-center gap-3 text-blue-400 font-bold text-lg transition-all"
+                >
+                    <span className="text-2xl">📱</span> UPI / Online
+                </button>
+            </div>
+        </Modal>
+    );
+};
+
 export const LiveOrdersBoard = ({ restaurantId, showToast, setConfirmAction, isKitchen = false }: { restaurantId: string, showToast: (msg: string, type?: any) => void, setConfirmAction: (action: any) => void, isKitchen?: boolean }) => {
 
     const [orders, setOrders] = useState<Order[]>([]);
+    const [selectedOrderForPayment, setSelectedOrderForPayment] = useState<string | null>(null);
 
     const fetchOrders = useCallback(async () => {
         const { data } = await supabase
@@ -187,15 +211,27 @@ export const LiveOrdersBoard = ({ restaurantId, showToast, setConfirmAction, isK
         return () => { supabase.removeChannel(channel); };
     }, [restaurantId, fetchOrders]);
 
-    const updateStatus = async (orderId: string, newStatus: string) => {
+    const updateStatus = async (orderId: string, newStatus: string, paymentMethod?: string) => {
         try {
+            const updatePayload: any = { status: newStatus };
+            if (paymentMethod) {
+                updatePayload.payment_method = paymentMethod;
+            }
+
             await supabase
                 .from('orders')
-                .update({ status: newStatus })
+                .update(updatePayload)
                 .eq('id', orderId);
             showToast(`Order marked as ${newStatus}`, 'success');
         } catch (error) {
             showToast('Failed to update status', 'error');
+        }
+    };
+
+    const handlePaymentConfirm = (method: string) => {
+        if (selectedOrderForPayment) {
+            updateStatus(selectedOrderForPayment, 'completed', method);
+            setSelectedOrderForPayment(null);
         }
     };
 
@@ -227,7 +263,14 @@ export const LiveOrdersBoard = ({ restaurantId, showToast, setConfirmAction, isK
                     </h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                         {orders.filter(o => o.order_type === 'dine-in').map(order => (
-                            <OrderCard key={order.id} order={order} isKitchen={isKitchen} updateStatus={updateStatus} setConfirmAction={setConfirmAction} />
+                            <OrderCard
+                                key={order.id}
+                                order={order}
+                                isKitchen={isKitchen}
+                                updateStatus={updateStatus}
+                                setConfirmAction={setConfirmAction}
+                                onPaymentClick={() => setSelectedOrderForPayment(order.id)}
+                            />
                         ))}
                     </div>
                 </div>
@@ -239,11 +282,24 @@ export const LiveOrdersBoard = ({ restaurantId, showToast, setConfirmAction, isK
                     </h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                         {orders.filter(o => o.order_type !== 'dine-in').map(order => (
-                            <OrderCard key={order.id} order={order} isKitchen={isKitchen} updateStatus={updateStatus} setConfirmAction={setConfirmAction} />
+                            <OrderCard
+                                key={order.id}
+                                order={order}
+                                isKitchen={isKitchen}
+                                updateStatus={updateStatus}
+                                setConfirmAction={setConfirmAction}
+                                onPaymentClick={() => setSelectedOrderForPayment(order.id)}
+                            />
                         ))}
                     </div>
                 </div>
             </div>
+
+            <PaymentModal
+                isOpen={!!selectedOrderForPayment}
+                onClose={() => setSelectedOrderForPayment(null)}
+                onConfirm={handlePaymentConfirm}
+            />
         </div>
     );
 };
