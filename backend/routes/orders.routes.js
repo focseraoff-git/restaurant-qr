@@ -374,9 +374,9 @@ router.delete('/:id', async (req, res) => {
 // Clear All Cancelled Orders
 router.delete('/cancelled/clear', async (req, res) => {
     const { restaurantId } = req.query;
-    try {
-        if (!restaurantId) return res.status(400).json({ error: 'Restaurant ID required' });
+    if (!restaurantId) return res.status(400).json({ error: 'Restaurant ID required' });
 
+    try {
         const { error } = await supabase
             .from('orders')
             .delete()
@@ -387,6 +387,26 @@ router.delete('/cancelled/clear', async (req, res) => {
         res.json({ success: true, message: 'All cancelled orders cleared' });
     } catch (error) {
         console.error('Error clearing cancelled orders:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Clear All Completed Orders
+router.delete('/completed/clear', async (req, res) => {
+    const { restaurantId } = req.query;
+    if (!restaurantId) return res.status(400).json({ error: 'Restaurant ID required' });
+
+    try {
+        const { error } = await supabase
+            .from('orders')
+            .delete()
+            .eq('restaurant_id', restaurantId)
+            .eq('status', 'completed');
+
+        if (error) throw error;
+        res.json({ success: true, message: 'All completed orders cleared' });
+    } catch (error) {
+        console.error('Error clearing completed orders:', error);
         res.status(500).json({ error: error.message });
     }
 });
