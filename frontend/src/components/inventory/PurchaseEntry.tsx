@@ -160,7 +160,7 @@ export const PurchaseEntry = ({ restaurantId, showToast }: { restaurantId: strin
                 <div className="border-t border-white/10 pt-4 mt-auto">
                     <div className="flex justify-between text-xl font-bold mb-6">
                         <span>Total Payable</span>
-                        <span className="text-emerald-400">${calculateTotal().toFixed(2)}</span>
+                        <span className="text-emerald-400">₹{calculateTotal().toFixed(2)}</span>
                     </div>
                     <button
                         onClick={handleSubmit}

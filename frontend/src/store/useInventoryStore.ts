@@ -27,8 +27,13 @@ interface Purchase {
     id: string;
     vendor_id: string;
     invoice_no: string;
-    date: string;
+    invoice_date: string;
     total_amount: number;
+    payment_status: string;
+    paid_amount: number;
+    notes?: string;
+    vendors?: { name: string };
+    date?: string; // Legacy/Alias support if needed
 }
 
 interface InventoryState {
@@ -52,6 +57,8 @@ interface InventoryState {
     deleteItem: (id: string) => Promise<void>;
 
     logMovement: (data: any) => Promise<void>;
+    fetchPurchases: (restaurantId: string, filters?: any) => Promise<void>;
+
     createPurchase: (data: any) => Promise<void>;
 }
 
@@ -66,13 +73,15 @@ export const useInventoryStore = create<InventoryState>((set) => ({
     init: async (restaurantId) => {
         set({ loading: true, error: null });
         try {
-            const [vendorsRes, itemsRes] = await Promise.all([
+            const [vendorsRes, itemsRes, purchasesRes] = await Promise.all([
                 api.get(`/vendors/${restaurantId}`),
-                api.get(`/inventory/${restaurantId}`)
+                api.get(`/inventory/${restaurantId}`),
+                api.get(`/purchases/${restaurantId}`)
             ]);
             set({
                 vendors: vendorsRes.data,
                 items: itemsRes.data,
+                purchases: purchasesRes.data,
                 loading: false
             });
         } catch (err: any) {
@@ -88,6 +97,19 @@ export const useInventoryStore = create<InventoryState>((set) => ({
     fetchItems: async (restaurantId) => {
         const res = await api.get(`/inventory/${restaurantId}`);
         set({ items: res.data });
+    },
+
+    fetchPurchases: async (restaurantId, filters) => {
+        let url = `/purchases/${restaurantId}`;
+        if (filters) {
+            const params = new URLSearchParams();
+            if (filters.vendorId) params.append('vendorId', filters.vendorId);
+            if (filters.fromDate) params.append('fromDate', filters.fromDate);
+            if (filters.toDate) params.append('toDate', filters.toDate);
+            url += `?${params.toString()}`;
+        }
+        const res = await api.get(url);
+        set({ purchases: res.data });
     },
 
     addVendor: async (data) => {

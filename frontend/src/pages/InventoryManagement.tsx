@@ -8,6 +8,7 @@ import { ItemMaster } from '../components/inventory/ItemMaster';
 import { StockMovement } from '../components/inventory/StockMovement';
 import { InventoryDashboard } from '../components/inventory/InventoryDashboard';
 import { PurchaseEntry } from '../components/inventory/PurchaseEntry';
+import { PurchaseHistory } from '../components/inventory/PurchaseHistory';
 import { Toast } from '../components/Toast';
 
 export const InventoryManagement = () => {
@@ -36,7 +37,7 @@ export const InventoryManagement = () => {
         { id: 'vendors', label: 'Vendors', icon: '🚚' },
         { id: 'movement', label: 'Stock In/Out', icon: '🔄' },
         { id: 'purchase', label: 'Purchase Entry', icon: '📝' },
-        // { id: 'reports', label: 'Reports', icon: '📈' }
+        { id: 'history', label: 'Invoices History', icon: '📜' }
     ];
 
     if (loading) return <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center">
@@ -100,7 +101,7 @@ export const InventoryManagement = () => {
                     {activeTab === 'items' && <ItemMaster restaurantId={restaurantId!} showToast={showToast} />}
                     {activeTab === 'movement' && <StockMovement restaurantId={restaurantId!} showToast={showToast} />}
                     {activeTab === 'purchase' && <PurchaseEntry restaurantId={restaurantId!} showToast={showToast} />}
-                    {activeTab === 'reports' && <div className="text-center py-20 text-gray-500 glass-panel rounded-2xl border border-white/5">Reports Coming Soon</div>}
+                    {activeTab === 'history' && <PurchaseHistory restaurantId={restaurantId!} />}
                 </div>
             </main>
 
