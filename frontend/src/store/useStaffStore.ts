@@ -89,7 +89,7 @@ export const useStaffStore = create<StaffState>((set, get) => ({
                 api.get(`/restaurants/${restaurantId}`)
             ]);
 
-            const activeStaff = staffRes.data.filter((s: any) => s.status === 'active');
+            const activeStaff = staffRes.data.filter((s: any) => s.status !== 'exited' && s.status !== 'deleted');
 
             // Map attendance to "Record" format for fast lookup
             const attendanceMap: Record<string, any> = {};
@@ -102,7 +102,7 @@ export const useStaffStore = create<StaffState>((set, get) => ({
             const pendingSalary = payRes.data.filter((p: any) => p.status === 'pending').reduce((sum: number, p: any) => sum + parseFloat(p.final_amount), 0);
 
             set({
-                staff: staffRes.data,
+                staff: activeStaff,
                 attendance: attendanceMap,
                 payroll: payRes.data,
                 advances: advRes.data,

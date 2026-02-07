@@ -67,7 +67,7 @@ export const StaffDirectory = ({ restaurantId, showToast }: { restaurantId: stri
                 <div>
                     <h2 className="text-xl font-bold text-white flex items-center gap-2">
                         👥 Staff Directory
-                        <span className="text-xs bg-emerald-500/10 text-emerald-500 px-2 py-1 rounded-lg border border-emerald-500/20">{staff.length} Active</span>
+                        <span className="text-xs bg-emerald-500/10 text-emerald-500 px-2 py-1 rounded-lg border border-emerald-500/20">{staff.filter((s: any) => s.status === 'active').length} Active</span>
                     </h2>
                     <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1">Manage Roles & Profiles</p>
                 </div>
