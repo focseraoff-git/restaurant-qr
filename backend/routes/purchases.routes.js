@@ -1,6 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const supabase = require('../config/supabaseClient');
+const { createClient } = require('@supabase/supabase-js');
+require('dotenv').config();
+
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
 // Create New Purchase (Invoice)
 router.post('/', async (req, res) => {

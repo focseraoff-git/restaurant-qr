@@ -69,8 +69,10 @@ export const PurchaseEntry = ({ restaurantId, showToast }: { restaurantId: strin
             setCart([]);
             setVendorId('');
             setInvoiceNo('');
-        } catch (err) {
-            showToast('Failed to record purchase', 'error');
+        } catch (err: any) {
+            console.error('Purchase Error:', err);
+            const msg = err.response?.data?.error || err.message || 'Failed to record purchase';
+            showToast(msg, 'error');
         }
     };
 
