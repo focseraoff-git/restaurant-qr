@@ -61,6 +61,9 @@ export const WaiterDashboard = () => {
     const [allOrders, setAllOrders] = useState<Order[]>([]);
     const [reportPeriod, setReportPeriod] = useState<'daily' | 'monthly' | 'yearly'>('daily');
     const [loadingReports, setLoadingReports] = useState(false);
+    const [orderNote, setOrderNote] = useState('');
+    const [isCustomModalOpen, setIsCustomModalOpen] = useState(false);
+    const [customItemForm, setCustomItemForm] = useState({ name: '', price: '' });
 
     // Toast and Confirm State
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
@@ -374,6 +377,23 @@ export const WaiterDashboard = () => {
         setSelectedItems(prev => prev.filter(i => i.id !== itemId));
     };
 
+    const handleAddCustomItem = () => {
+        if (!customItemForm.name || !customItemForm.price) {
+            showToast('Please enter name and price', 'error');
+            return;
+        }
+        addItemToOrder({
+            id: `custom-${Date.now()}`,
+            name: customItemForm.name,
+            price_full: parseFloat(customItemForm.price),
+            is_veg: true,
+            image: null
+        });
+        setIsCustomModalOpen(false);
+        setCustomItemForm({ name: '', price: '' });
+        showToast('Custom item added', 'success');
+    };
+
 
     // ... (actions)
 
@@ -403,15 +423,15 @@ export const WaiterDashboard = () => {
 
             const orderData = {
                 restaurantId: cleanId,
-                tableId: orderType === 'dine-in' ? tableNumber : null, // Send the ID (stored in tableNumber state)
+                tableId: orderType === 'dine-in' ? tableNumber : null,
                 customerName: finalCustomerName,
                 customerPhone: null,
                 orderType: orderType,
+                orderNote: orderNote, // Include orderNote
                 items: selectedItems.map(item => ({
-                    itemId: item.id,
+                    itemId: item.id?.startsWith('custom-') ? null : item.id, // Handle custom items
                     quantity: item.quantity,
                     portion: 'full',
-                    // Pass name/price for potential custom usage later
                     name: item.name,
                     price: item.price_full
                 }))
@@ -425,6 +445,7 @@ export const WaiterDashboard = () => {
             setSelectedItems([]);
             setTableNumber('');
             setCustomerName('');
+            setOrderNote(''); // Clear note
             setOrderType('dine-in');
             showToast('Order placed successfully!', 'success');
             fetchOrders(); // Refresh orders
@@ -698,7 +719,24 @@ export const WaiterDashboard = () => {
 
                         <div className="flex justify-between items-center">
                             <h2 className="text-sm font-bold text-gray-400 uppercase">Settlement History</h2>
-                            <button onClick={clearHistory} className="text-xs text-red-400 hover:text-red-300">Clear View</button>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={async () => {
+                                        if (!window.confirm("Clear ALL 'Completed' orders for this restaurant? This affects everyone.")) return;
+                                        try {
+                                            const cleanId = restaurantId?.split('&')[0];
+                                            await api.delete(`/orders/completed/clear?restaurantId=${cleanId}`);
+                                            showToast('Global History Cleared', 'success');
+                                            fetchAllOrders(); // Refresh
+                                            fetchOrders();
+                                        } catch (e) { showToast('Failed to clear', 'error'); }
+                                    }}
+                                    className="text-xs text-red-400 hover:text-red-300 border border-red-500/20 px-2 py-1 rounded"
+                                >
+                                    Clear Global DB
+                                </button>
+                                <button onClick={clearHistory} className="text-xs text-gray-400 hover:text-white border border-white/10 px-2 py-1 rounded">Clear View</button>
+                            </div>
                         </div>
 
                         <div className="space-y-3">
@@ -784,12 +822,28 @@ export const WaiterDashboard = () => {
                                     onChange={(e) => setCustomerName(e.target.value)}
                                     className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:border-emerald-500 focus:outline-none transition-colors"
                                 />
+                                <textarea
+                                    placeholder="Order Notes / Instructions..."
+                                    value={orderNote}
+                                    onChange={(e) => setOrderNote(e.target.value)}
+                                    className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:border-emerald-500 focus:outline-none transition-colors h-20 resize-none"
+                                />
                             </div>
                         </div>
 
 
                         {/* Complete Menu Display - All Categories */}
                         <div className="space-y-12 relative">
+                            <div className="flex justify-between items-center bg-emerald-900/10 p-4 rounded-xl border border-emerald-500/20">
+                                <span className="text-emerald-400 font-bold uppercase tracking-wider text-xs">Menu Items</span>
+                                <button
+                                    onClick={() => setIsCustomModalOpen(true)}
+                                    className="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 px-4 py-2 rounded-lg font-bold text-xs uppercase tracking-wider transition-all"
+                                >
+                                    + Add Custom Item
+                                </button>
+                            </div>
+
                             {/* Animated Background Gradient */}
                             <div className="fixed inset-0 pointer-events-none opacity-20">
                                 <div className="absolute top-0 left-0 w-96 h-96 bg-emerald-500/30 rounded-full blur-[120px] animate-pulse"></div>
@@ -1375,6 +1429,38 @@ export const WaiterDashboard = () => {
                             Confirm
                         </button>
                     </div>
+                </div>
+            </Modal>
+
+            {/* Custom Item Modal */}
+            <Modal isOpen={isCustomModalOpen} onClose={() => setIsCustomModalOpen(false)} title="Add Custom Item">
+                <div className="space-y-4">
+                    <div>
+                        <label className="block text-xs uppercase tracking-wider font-bold text-gray-400 mb-2">Item Name</label>
+                        <input
+                            type="text"
+                            placeholder="e.g. Special Spicy Sauce"
+                            value={customItemForm.name}
+                            onChange={(e) => setCustomItemForm({ ...customItemForm, name: e.target.value })}
+                            className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:border-emerald-500 focus:outline-none transition-colors"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-xs uppercase tracking-wider font-bold text-gray-400 mb-2">Price (₹)</label>
+                        <input
+                            type="number"
+                            placeholder="0.00"
+                            value={customItemForm.price}
+                            onChange={(e) => setCustomItemForm({ ...customItemForm, price: e.target.value })}
+                            className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:border-emerald-500 focus:outline-none transition-colors"
+                        />
+                    </div>
+                    <button
+                        onClick={handleAddCustomItem}
+                        className="w-full py-4 bg-emerald-500 hover:bg-emerald-400 rounded-xl font-bold text-white shadow-lg shadow-emerald-500/20 transition-all transform active:scale-95"
+                    >
+                        Add to Order
+                    </button>
                 </div>
             </Modal>
 
